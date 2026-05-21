@@ -1,142 +1,209 @@
-# DocNest - Doctor Clinic Appointment Platform
+# DocNest
 
-Full-stack project using React + Tailwind (frontend) and Spring Boot + MySQL (backend).
+> A full-stack healthcare appointment platform connecting patients, doctors, and clinics with privacy-first medical record management.
 
-## Features Implemented
+![Java](https://img.shields.io/badge/Java-17-blue?logo=openjdk)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.4-green?logo=springboot)
+![React](https://img.shields.io/badge/React-19-61DAFB?logo=react)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-4479A1?logo=mysql&logoColor=white)
+![Tailwind](https://img.shields.io/badge/Tailwind-4.0-06B6D4?logo=tailwindcss&logoColor=white)
 
-- Separate login flow for:
-  - Patients
-  - Doctors/Clinics
-  - Head Admin
-- Role-based routing on frontend.
-- User registration with role selection.
-- Nearby doctor discovery by latitude/longitude.
-- Doctor profile with specialization, bio, and available slot settings.
-- Doctor degrees and doctor ratings endpoints.
-- Appointment booking with available slot generation.
-- Patient visit history (diagnosis, disease history, medications).
-- Doctor access to patient visit history.
-- Head admin dashboard with users, clinics, appointments, and visits summary.
+---
 
-## Project Structure
+## Overview
 
-- `frontend` -> React + Vite + Tailwind v4
-- `backend` -> Spring Boot + JPA + MySQL
+DocNest is a multi-role clinic management system where:
 
-## Backend Setup
+- **Patients** discover nearby doctors, book appointment slots, manage their medical passport, and track visit history.
+- **Doctors** view daily schedules, access patient medical history during appointments (privacy-gated), and write prescriptions.
+- **Clinics** manage their medical staff, view appointment flow, and maintain clinic-scoped patient records.
+- **Admins** oversee all clinics, approve registrations, and search across the entire system.
 
-1. Ensure MySQL is running.
-2. Update `backend/src/main/resources/application.properties`:
-  - `DB_USERNAME` (defaults to `root`)
-  - `DB_PASSWORD` (defaults to empty)
-  - `APP_JWT_SECRET` (recommended in non-dev)
-  - `SERVER_PORT` (optional, defaults to `8085`)
-3. From `backend`, run:
+---
+
+## Architecture
+
+```
+┌──────────────────┐        ┌──────────────────────┐        ┌────────────┐
+│   React + Vite   │  HTTP  │   Spring Boot API    │  JPA   │   MySQL    │
+│   (Port 5173)    │◄──────►│   (Port 8085)        │◄──────►│   8.0      │
+│   Tailwind CSS   │        │   JWT Auth           │        │            │
+└──────────────────┘        │   Role-based Access  │        └────────────┘
+                            └──────────────────────┘
+```
+
+---
+
+## Features
+
+### Patient
+- Nearby doctor discovery (geo-based)
+- Slot booking with real-time availability
+- Structured medical history (expandable disease cards with status tracking)
+- Allergies, medications, vitals management
+- Visit history and prescription records
+
+### Doctor
+- Daily schedule view with patient names
+- Same-day patient medical history access (privacy-enforced)
+- Prescription writing with revisit scheduling
+- Leave management with auto-cancellation
+- QR-based patient check-in
+
+### Clinic
+- Doctor registration and approval workflow
+- Patient records scoped to own clinic only
+- Appointment tracking across all staff
+- Clinical notes per patient
+
+### Admin
+- Global search (clinics, doctors, patients)
+- Clinic approval workflow
+- Full patient/doctor profile popups
+- Visit records and audit trail
+
+---
+
+## Tech Stack
+
+| Layer | Technology |
+|-------|-----------|
+| Frontend | React 19, Vite 8, Tailwind CSS 4 |
+| Backend | Java 17, Spring Boot 3.4, Spring Security, Spring Data JPA |
+| Database | MySQL 8.0 |
+| Auth | JWT (stateless, role-based) |
+| AI | Groq API (medical intake summarization) |
+| Build | Maven (backend), npm (frontend) |
+
+---
+
+## Getting Started
+
+### Prerequisites
+
+- Java 17+
+- Maven 3.9+
+- Node.js 18+
+- MySQL 8.0 running locally
+
+### Backend
 
 ```bash
+cd backend
+
+# Set environment variables (or use defaults for dev)
+export DB_USERNAME=root
+export DB_PASSWORD=yourpassword
+export GROQ_API_KEY=your-groq-api-key
+
 mvn spring-boot:run
 ```
 
-Backend runs at `http://localhost:8085` by default.
+Server starts at `http://localhost:8085`. On first run, it seeds test accounts automatically.
 
-Example (PowerShell):
-
-```powershell
-$env:DB_USERNAME="root"
-$env:DB_PASSWORD="your_mysql_password"
-$env:APP_JWT_SECRET="replace-with-strong-32-plus-char-secret"
-mvn spring-boot:run
-```
-
-## VS Code Java Troubleshooting
-
-If you see Java editor errors like "not on the classpath" while Maven build is successful:
-
-1. Ensure JDK 17 is installed.
-2. Open Command Palette and run `Java: Clean Java Language Server Workspace`.
-3. Reload the window and wait for Maven project import to finish.
-
-Workspace Java settings are included in `.vscode/settings.json`.
-
-## Frontend Setup
-
-From `frontend`, run:
+### Frontend
 
 ```bash
+cd frontend
 npm install
 npm run dev
 ```
 
-Frontend runs at `http://localhost:5173`.
+App starts at `http://localhost:5173`.
 
-## Important API Endpoints
+### Test Accounts
+
+All use password: `password123`
+
+| Role | Phone | Email |
+|------|-------|-------|
+| Patient | 9100000001 | patient@test.com |
+| Doctor (Cardiology) | 9100000010 | priya.sharma@careplus.in |
+| Doctor (Dermatology) | 9100000011 | arjun.mehta@careplus.in |
+| Clinic Admin | 9100000003 | clinic@careplus.in |
+| System Admin | 9100000000 | admin@test.com |
+
+---
+
+## Project Structure
+
+```
+DocNest/
+├── backend/
+│   ├── src/main/java/com/doctpjt/clinicapp/
+│   │   ├── config/          # Security, exception handling
+│   │   ├── controller/      # REST endpoints
+│   │   ├── dto/             # Request/response records
+│   │   ├── entity/          # JPA entities
+│   │   ├── repository/      # Data access
+│   │   ├── service/         # Business logic
+│   │   └── audit/           # Access logging
+│   └── src/main/resources/
+│       └── application.properties
+├── frontend/
+│   ├── src/
+│   │   ├── components/      # Shared UI components
+│   │   ├── context/         # Auth context
+│   │   ├── pages/           # Route pages
+│   │   └── services/        # API client
+│   └── package.json
+├── vercel.json              # Deployment config
+└── README.md
+```
+
+---
+
+## API Reference
 
 ### Auth
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/auth/register` | Register new user |
+| POST | `/api/auth/login` | Login (phone or email) |
 
-- `POST /api/auth/register`
-- `POST /api/auth/login`
-
-### Clinic / Nearby Doctors
-
-- `POST /api/clinics`
-- `GET /api/clinics/nearby-doctors?latitude=..&longitude=..`
-
-### Doctor Profile / Degrees / Ratings
-
-- `POST /api/doctors/profile`
-- `GET /api/doctors/{doctorUserId}/profile`
-- `POST /api/doctors/{doctorUserId}/degrees`
-- `GET /api/doctors/{doctorUserId}/degrees`
-- `POST /api/doctors/{doctorUserId}/ratings`
-- `GET /api/doctors/{doctorUserId}/ratings`
+### Clinics
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/clinics/nearby-doctors` | Geo-based doctor search |
+| GET | `/api/clinics/doctor/{id}` | Doctor detail card |
+| GET | `/api/clinics/{id}/dashboard` | Clinic dashboard (auth) |
 
 ### Appointments
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/appointments/doctor/{id}/slots` | Available slots for date |
+| POST | `/api/appointments/book` | Book a slot |
+| POST | `/api/appointments/check-in` | QR check-in |
 
-- `GET /api/appointments/doctor/{doctorUserId}/slots?date=YYYY-MM-DD`
-- `POST /api/appointments/book`
-- `GET /api/appointments/patient/{patientUserId}`
-
-### Visit History
-
-- `POST /api/visits`
-- `GET /api/visits/patient/{patientUserId}`
-- `GET /api/visits/doctor/{doctorUserId}/patient/{patientUserId}`
+### Visits
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | `/api/visits` | Create visit record (Rx) |
+| GET | `/api/visits/patient/{id}` | Patient visit history |
 
 ### Admin
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| GET | `/api/admin/dashboard` | System overview |
+| POST | `/api/admin/clinics/approve` | Approve clinic |
 
-- `GET /api/admin/dashboard`
-- `POST /api/admin/cleanup-test-data?emailDomain=test.local`
+---
 
-## QA Automation
+## Privacy Model
 
-From project root:
+- **Doctors** can only view patient medical history during same-day active appointments. Previous days' data is not accessible.
+- **Clinics** can only see visit records from their own clinic. Patient's personal medical history and visits to other clinics remain hidden.
+- **Patients** have full control over their medical passport. Data sharing requires active appointment context.
+- **Admin** has read access to all records for oversight purposes.
 
-```bash
-powershell -ExecutionPolicy Bypass -File .\qa-e2e.ps1 -RunLabel smoke
-```
+---
 
-Batch runs with CSV summary:
+## Deployment
 
-```bash
-powershell -ExecutionPolicy Bypass -File .\qa-runner.ps1 -Runs 2 -Prefix retest -CleanupBefore
-```
+Frontend is configured for Vercel deployment via `vercel.json`. Backend requires a hosted MySQL instance and can be deployed to any Java-compatible platform (Railway, Render, AWS).
 
-Cleanup generated test data (emails ending with `test.local`):
+---
 
-```bash
-powershell -ExecutionPolicy Bypass -File .\qa-cleanup.ps1 -EmailDomain test.local
-```
+## License
 
-Reports are stored in `qa-reports/` as:
-
-- `qa-e2e-<label>-<timestamp>.json`
-- `qa-summary-<prefix>-<timestamp>.csv`
-
-## Suggested Next Enhancements
-
-- Add JWT authentication with refresh tokens.
-- Add role-based method security (`@PreAuthorize`).
-- Add clinic onboarding dashboard and doctor assignment flow.
-- Add map integration (Google Maps / OpenStreetMap) for nearby clinics.
-- Add payment gateway and appointment reminders.
-- Add unit/integration tests for services and controllers.
+This project is for educational and demonstration purposes.
