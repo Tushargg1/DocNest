@@ -168,7 +168,14 @@ function NearbyDoctors() {
       return acc;
     }, {})
   )
-    .map((clinic) => ({ ...clinic, specializations: Array.from(clinic.specializations) }))
+    .map((clinic) => {
+      // Compute clinic-level average rating from all doctors
+      const ratedDocs = clinic.doctors.filter(d => d.averageRating > 0);
+      const clinicRating = ratedDocs.length > 0
+        ? ratedDocs.reduce((sum, d) => sum + d.averageRating, 0) / ratedDocs.length
+        : 0;
+      return { ...clinic, specializations: Array.from(clinic.specializations), clinicRating: Math.round(clinicRating * 10) / 10 };
+    })
     .sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
 
   return (
@@ -304,6 +311,13 @@ function NearbyDoctors() {
                       </div>
                     </div>
                     <div className="flex items-center gap-3 shrink-0">
+                      {/* Clinic rating */}
+                      {clinic.clinicRating > 0 && (
+                        <div className="flex items-center gap-1 text-sm">
+                          <svg className="h-4 w-4 text-amber-400 fill-amber-400" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                          <span className="font-semibold text-slate-700">{clinic.clinicRating}</span>
+                        </div>
+                      )}
                       {/* Like button */}
                       <button
                         onClick={(e) => toggleLikeClinic(clinic.clinicId, e)}

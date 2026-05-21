@@ -330,30 +330,41 @@ function DoctorDetails() {
               </div>
             )}
           </div>
+
+          {/* Reviews Summary in sidebar */}
+          {reviews.length > 0 && (
+            <div className="frost-card rounded-xl p-5">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-bold text-slate-800">Patient Reviews</h3>
+                <span className="text-xs text-slate-400">{reviews.length} review{reviews.length !== 1 ? "s" : ""}</span>
+              </div>
+              {/* Average rating */}
+              <div className="flex items-center gap-2 mb-3">
+                <div className="flex items-center gap-0.5">
+                  {[1,2,3,4,5].map(star => {
+                    const avg = reviews.reduce((s, r) => s + r.score, 0) / reviews.length;
+                    return <svg key={star} className={`h-4 w-4 ${star <= Math.round(avg) ? "text-amber-400 fill-amber-400" : "text-slate-200"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>;
+                  })}
+                </div>
+                <span className="text-sm font-bold text-slate-700">{(reviews.reduce((s, r) => s + r.score, 0) / reviews.length).toFixed(1)}</span>
+              </div>
+              {/* Latest reviews */}
+              <div className="space-y-2 max-h-48 overflow-y-auto">
+                {reviews.slice(0, 5).map((r) => (
+                  <div key={r.id} className="border-t border-slate-100 pt-2">
+                    <div className="flex items-center gap-0.5 mb-1">
+                      {[1,2,3,4,5].map(star => (
+                        <svg key={star} className={`h-3 w-3 ${star <= r.score ? "text-amber-400 fill-amber-400" : "text-slate-200"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
+                      ))}
+                    </div>
+                    {r.review && <p className="text-xs text-slate-600 line-clamp-2">{r.review}</p>}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </aside>
       </div>
-
-      {/* Patient Reviews */}
-      {reviews.length > 0 && (
-        <section className="mt-8">
-          <h2 className="text-lg font-bold text-slate-900 mb-4">Patient Reviews ({reviews.length})</h2>
-          <div className="space-y-3">
-            {reviews.map((r) => (
-              <div key={r.id} className="frost-card rounded-xl p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div className="flex items-center gap-1">
-                    {[1,2,3,4,5].map(star => (
-                      <svg key={star} className={`h-4 w-4 ${star <= r.score ? "text-amber-400 fill-amber-400" : "text-slate-200"}`} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                    ))}
-                  </div>
-                  <span className="text-xs text-slate-400">Patient #{r.patientUserId}</span>
-                </div>
-                {r.review && <p className="text-sm text-slate-700">{r.review}</p>}
-              </div>
-            ))}
-          </div>
-        </section>
-      )}
     </div>
   );
 }
