@@ -19,6 +19,7 @@ import SymptomChecker from "./pages/SymptomChecker";
 import HealthIntake from "./pages/HealthIntake";
 import Notifications from "./pages/Notifications";
 import PatientConsent from "./pages/PatientConsent";
+import MyMedicines from "./pages/MyMedicines";
 
 function App() {
   return (
@@ -103,6 +104,14 @@ function App() {
             element={
               <ProtectedRoute roles={["PATIENT"]}>
                 <PatientConsent />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/medicines"
+            element={
+              <ProtectedRoute roles={["PATIENT"]}>
+                <MyMedicines />
               </ProtectedRoute>
             }
           />
