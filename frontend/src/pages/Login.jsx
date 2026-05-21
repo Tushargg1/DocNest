@@ -35,9 +35,8 @@ function Login() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8 fade-up">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-navy to-teal-600 shadow-xl shadow-teal-200/30"
-            style={{ background: "linear-gradient(135deg, #0b1437, #0ea5a5)" }}>
-            <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <div className="mx-auto mb-5 flex h-14 w-14 items-center justify-center rounded-xl bg-teal-600">
+            <svg className="h-7 w-7 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
           </div>
@@ -46,7 +45,7 @@ function Login() {
         </div>
 
         {/* Form Card */}
-        <form onSubmit={handleSubmit} className="frost-card rounded-[2rem] p-8 space-y-5 fade-up stagger-1">
+        <form onSubmit={handleSubmit} className="frost-card rounded-xl p-8 space-y-5 fade-up stagger-1">
           <div>
             <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">
               Phone Number

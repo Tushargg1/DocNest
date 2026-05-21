@@ -114,10 +114,10 @@ function AdminDashboard() {
 
       {/* Stats */}
       <div className="grid gap-4 sm:grid-cols-4 mb-8">
-        <div className="stat-card metric-users"><p className="text-xs font-semibold uppercase text-white/60 mb-1">Users</p><p className="text-3xl font-bold">{dashboard.totalUsers}</p></div>
-        <div className="stat-card metric-clinics"><p className="text-xs font-semibold uppercase text-white/60 mb-1">Clinics</p><p className="text-3xl font-bold">{dashboard.totalClinics}</p></div>
-        <div className="stat-card metric-appointments"><p className="text-xs font-semibold uppercase text-white/60 mb-1">Appointments</p><p className="text-3xl font-bold">{dashboard.totalAppointments}</p></div>
-        <div className="stat-card metric-visits"><p className="text-xs font-semibold uppercase text-white/60 mb-1">Visits</p><p className="text-3xl font-bold">{dashboard.totalVisits}</p></div>
+        <div className="stat-card"><p className="text-xs font-medium uppercase text-slate-500 mb-1">Users</p><p className="text-3xl font-bold text-slate-900">{dashboard.totalUsers}</p></div>
+        <div className="stat-card"><p className="text-xs font-medium uppercase text-slate-500 mb-1">Clinics</p><p className="text-3xl font-bold text-slate-900">{dashboard.totalClinics}</p></div>
+        <div className="stat-card"><p className="text-xs font-medium uppercase text-slate-500 mb-1">Appointments</p><p className="text-3xl font-bold text-slate-900">{dashboard.totalAppointments}</p></div>
+        <div className="stat-card"><p className="text-xs font-medium uppercase text-slate-500 mb-1">Visits</p><p className="text-3xl font-bold text-slate-900">{dashboard.totalVisits}</p></div>
       </div>
 
       {/* Global Search */}

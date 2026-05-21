@@ -79,7 +79,7 @@ function Home() {
     <div className="pb-16">
       {/* Hero Section */}
       <section className="shell py-12 fade-up">
-        <div className="hero-shell rounded-[2.5rem] overflow-hidden p-8 md:p-14 lg:p-16 text-white">
+        <div className="hero-shell rounded-xl overflow-hidden p-8 md:p-14 lg:p-16 text-white">
           {/* Background decorations */}
           <div className="absolute inset-0 pointer-events-none">
             <div className="absolute -top-24 -right-24 h-96 w-96 rounded-full bg-teal-400/10 blur-3xl" />
@@ -96,7 +96,7 @@ function Home() {
 
               <h1 className="text-5xl md:text-6xl font-black leading-[1.05] tracking-tight">
                 Smarter Care,<br />
-                <span className="text-transparent bg-clip-text bg-gradient-to-r from-teal-300 to-emerald-300">
+                <span className="text-transparent bg-clip-text text-teal-300">
                   Closer To You
                 </span>
               </h1>
@@ -109,10 +109,10 @@ function Home() {
               <div className="mt-10 flex flex-wrap gap-3">
                 <Link
                   to="/nearby"
-                  className="group relative overflow-hidden rounded-2xl bg-white px-8 py-4 font-bold text-slate-900 transition-all hover:scale-105 active:scale-95 shadow-xl"
+                  className="group relative overflow-hidden rounded-2xl bg-white px-8 py-4 font-bold text-slate-900 transition-all hover:scale-105 active:scale-95 "
                 >
                   <span className="relative z-10">🏥 Find Clinics Near Me</span>
-                  <div className="absolute inset-0 -translate-x-full bg-gradient-to-r from-teal-50 to-emerald-50 transition-transform duration-300 group-hover:translate-x-0" />
+                  <div className="absolute inset-0 -translate-x-full bg-teal-50 transition-transform duration-300 group-hover:translate-x-0" />
                 </Link>
                 {!session && (
                   <Link
@@ -189,7 +189,7 @@ function Home() {
       {/* CTA Banner */}
       {!session && (
         <section className="shell py-6 fade-up">
-          <div className="frost-card-dark rounded-[2rem] p-10 md:p-14 text-center">
+          <div className="frost-card-dark rounded-xl p-10 md:p-14 text-center">
             <h2 className="text-3xl md:text-4xl font-black text-white">
               Ready to take control of your <span className="text-teal-400">health?</span>
             </h2>
@@ -212,3 +212,5 @@ function Home() {
 }
 
 export default Home;
+
+

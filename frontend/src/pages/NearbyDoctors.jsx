@@ -365,7 +365,7 @@ function NearbyDoctors() {
             {selectedClinic.doctors.map((doc) => (
               <article key={doc.doctorUserId} className="frost-card rounded-2xl p-5 hover:-translate-y-1 transition-transform">
                 <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 text-teal-700 font-black text-lg">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 font-black text-lg">
                     {(doc.doctorName || "D").charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -396,3 +396,4 @@ function NearbyDoctors() {
 }
 
 export default NearbyDoctors;
+

@@ -204,8 +204,7 @@ function DoctorWorkspace() {
                   >
                     <div className="flex items-center gap-3">
                       {appt.tokenNumber && (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-teal-300"
-                          style={{ background: "linear-gradient(135deg, #0b1437, #0ea5a5)" }}>
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-xs font-bold text-teal-700">
                           {appt.tokenNumber}
                         </div>
                       )}

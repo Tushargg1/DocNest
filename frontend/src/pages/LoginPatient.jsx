@@ -33,7 +33,7 @@ function LoginPatient() {
           <p className="mt-3 text-slate-600 font-medium">Access your personal healthcare dashboard.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="frost-card mt-10 space-y-5 rounded-[2.5rem] p-10 fade-up stagger-2 shadow-2xl">
+        <form onSubmit={handleSubmit} className="frost-card mt-10 space-y-5 rounded-xl p-10 fade-up stagger-2 ">
           <div>
             <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Email or Phone</label>
             <input
@@ -91,3 +91,4 @@ function LoginPatient() {
 }
 
 export default LoginPatient;
+

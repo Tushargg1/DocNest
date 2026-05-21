@@ -309,8 +309,8 @@ function Profile() {
       <div className="grid gap-10 lg:grid-cols-3">
         {/* Left Side: Summary & Status */}
         <div className="lg:col-span-1 space-y-6">
-          <div className="frost-card p-8 rounded-[2.5rem] text-center shadow-xl">
-            <div className="mx-auto h-20 w-20 rounded-2xl bg-teal-600 flex items-center justify-center text-3xl font-bold text-white shadow-lg">
+          <div className="frost-card p-8 rounded-xl text-center ">
+            <div className="mx-auto h-20 w-20 rounded-2xl bg-teal-600 flex items-center justify-center text-3xl font-bold text-white ">
               {profile.fullName.charAt(0).toUpperCase()}
             </div>
             <h2 className="mt-4 text-xl font-bold text-slate-900">{profile.fullName}</h2>
@@ -320,7 +320,7 @@ function Profile() {
           </div>
 
           {session.role === "PATIENT" && patientMedical && (
-             <div className="frost-card p-8 rounded-[2.5rem] shadow-xl bg-teal-50 border-teal-100 border">
+             <div className="frost-card p-8 rounded-xl  bg-teal-50 border-teal-100 border">
                 <h4 className="text-[10px] font-bold uppercase tracking-widest text-teal-600 mb-4">Vitals Summary</h4>
                 <div className="grid grid-cols-2 gap-4">
                    <div>
@@ -344,7 +344,7 @@ function Profile() {
           )}
 
           {session.role === "DOCTOR" && doctorProfile && (
-            <div className={`frost-card p-8 rounded-[2.5rem] shadow-xl border-l-4 ${doctorProfile.approvalStatus === "ACTIVE" ? "border-teal-500" : "border-slate-300"}`}>
+            <div className={`frost-card p-8 rounded-xl  border-l-4 ${doctorProfile.approvalStatus === "ACTIVE" ? "border-teal-500" : "border-slate-300"}`}>
               <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Profile Status</p>
               <span className={`status-badge ${doctorProfile.approvalStatus === "ACTIVE" ? "status-booked" : "status-cancelled"}`}>
                 {doctorProfile.approvalStatus === "ACTIVE" ? "Active" : "Pending Approval"}
@@ -360,7 +360,7 @@ function Profile() {
           )}
 
           {session.role === "CLINIC" && clinic && (
-            <div className={`frost-card p-8 rounded-[2.5rem] shadow-xl border-l-4 ${clinic.approved ? "border-teal-500" : "border-slate-300"}`}>              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Live Status</p>
+            <div className={`frost-card p-8 rounded-xl  border-l-4 ${clinic.approved ? "border-teal-500" : "border-slate-300"}`}>              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Live Status</p>
               <span className={`status-badge ${clinic.approved ? "status-booked" : "status-cancelled"}`}>
                 {clinic.approved ? "Verified & Public" : "Pending Approval"}
               </span>
@@ -373,7 +373,7 @@ function Profile() {
           )}
 
           {session.role === "CLINIC" && (
-             <div className="frost-card p-8 rounded-[2.5rem] shadow-xl bg-slate-900 text-white">
+             <div className="frost-card p-8 rounded-xl">
                 <h4 className="text-xs font-bold uppercase tracking-widest text-slate-400">Staff Overview</h4>
                 <div className="mt-4 flex items-end gap-3">
                    <p className="text-5xl font-bold tracking-tighter">{doctors.length}</p>
@@ -386,7 +386,7 @@ function Profile() {
         {/* Right Side: Shared Profile Form & Doctor List */}
         <div className="lg:col-span-2 space-y-8">
           <form onSubmit={handleUpdate} className="space-y-8">
-            <section className="frost-card p-10 rounded-[2.5rem] shadow-2xl">
+            <section className="frost-card p-10 rounded-xl ">
               <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                 <div className="h-2 w-2 rounded-full bg-teal-500" /> User Information
               </h3>
@@ -425,7 +425,7 @@ function Profile() {
             </section>
 
             {session.role === "PATIENT" && patientMedical && (
-              <section className="frost-card p-10 rounded-[2.5rem] shadow-2xl">
+              <section className="frost-card p-10 rounded-xl ">
                 <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" /> Medical Profile
                 </h3>
@@ -721,7 +721,7 @@ function Profile() {
             )}
 
             {session.role === "DOCTOR" && doctorProfile && (
-              <section className="frost-card p-10 rounded-[2.5rem] shadow-2xl">
+              <section className="frost-card p-10 rounded-xl ">
                 <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" /> Professional Profile
                 </h3>
@@ -819,7 +819,7 @@ function Profile() {
             )}
 
             {session.role === "CLINIC" && clinic && (
-              <section className="frost-card p-10 rounded-[2.5rem] shadow-2xl">
+              <section className="frost-card p-10 rounded-xl ">
                 <h3 className="text-lg font-bold text-slate-900 mb-6 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" /> Clinic Profile
                 </h3>
@@ -874,7 +874,7 @@ function Profile() {
                   {message}
                 </div>
               )}
-              <button disabled={saving} className="brand-btn w-full py-5 text-sm font-semibold uppercase tracking-widest transition-all shadow-xl">
+              <button disabled={saving} className="brand-btn w-full py-5 text-sm font-semibold uppercase tracking-widest transition-all ">
                 {saving ? "Processing..." : "Save Profile Changes"}
               </button>
             </div>
@@ -883,7 +883,7 @@ function Profile() {
           {session.role === "DOCTOR" && (
             <div className="space-y-8">
               {/* Degrees */}
-              <section className="frost-card p-8 rounded-[2.5rem] shadow-2xl">
+              <section className="frost-card p-8 rounded-xl ">
                 <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" /> Qualifications & Degrees
                 </h3>
@@ -912,7 +912,7 @@ function Profile() {
               </section>
 
               {/* Leave Management */}
-              <section className="frost-card p-8 rounded-[2.5rem] shadow-2xl">
+              <section className="frost-card p-8 rounded-xl ">
                 <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-slate-400" /> Leave Days
                 </h3>
@@ -989,7 +989,7 @@ function Profile() {
               </div>
 
               {showDoctorForm && (
-                <form onSubmit={handleAddDoctor} className="frost-card p-10 rounded-[2.5rem] shadow-2xl space-y-6 fade-up">
+                <form onSubmit={handleAddDoctor} className="frost-card p-10 rounded-xl  space-y-6 fade-up">
                   <div className="grid gap-6 md:grid-cols-2">
                     <input placeholder="Doctor Full Name" className="field" value={docForm.fullName} onChange={e => setDocForm({...docForm, fullName: e.target.value})} required />
                     {!editingDoctorId && (
@@ -1036,7 +1036,7 @@ function Profile() {
                     </div>
                   )}
 
-                  <button className="brand-btn w-full py-4 text-sm font-semibold uppercase tracking-widest shadow-xl">
+                  <button className="brand-btn w-full py-4 text-sm font-semibold uppercase tracking-widest ">
                     {editingDoctorId ? "Save Doctor Changes" : "Register Staff Member"}
                   </button>
                 </form>
@@ -1044,7 +1044,7 @@ function Profile() {
 
               <div className="grid gap-4">
                 {doctors.map(doc => (
-                  <article key={doc.doctorUserId} className="frost-card p-6 rounded-[2rem] flex items-center justify-between shadow-lg">
+                  <article key={doc.doctorUserId} className="frost-card p-6 rounded-xl flex items-center justify-between ">
                      <div>
                         <div className="flex items-center gap-3">
                            <h4 className="font-bold text-slate-900 uppercase tracking-tighter">{doc.doctorName}</h4>
@@ -1096,7 +1096,7 @@ function Profile() {
                 )}
               </div>
 
-              <section className="frost-card p-6 rounded-[2rem] shadow-lg">
+              <section className="frost-card p-6 rounded-xl ">
                 <h3 className="text-xl font-bold text-slate-900 tracking-tight">Clinic Patients</h3>
                 <p className="mt-1 text-sm text-slate-500">Only patients with bookings in this clinic are shown here. Treatment details stay hidden until they book here.</p>
                 <div className="mt-4 grid gap-3">

@@ -381,7 +381,7 @@ function PatientVisits() {
                 key={fav.doctorUserId}
                 className="frost-card rounded-2xl p-4 flex items-center gap-3 hover:-translate-y-0.5 transition-transform"
               >
-                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-gradient-to-br from-teal-100 to-cyan-100 text-teal-700 font-black">
+                <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 font-black">
                   {(fav.doctorName || "D").charAt(0)}
                 </div>
                 <div className="flex-1 min-w-0">
@@ -496,7 +496,7 @@ function PatientVisits() {
                   {/* Token badge */}
                   <div
                     className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl text-sm font-black text-white"
-                    style={{ background: "linear-gradient(135deg, #0b1437, #0ea5a5)" }}
+                    
                   >
                     {appt.tokenNumber || "#"}
                   </div>
@@ -680,7 +680,7 @@ function PatientVisits() {
       {/* Review Modal */}
       {reviewForm.show && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm">
-          <form onSubmit={submitReview} className="frost-card rounded-[2rem] p-8 w-full max-w-md fade-up shadow-2xl">
+          <form onSubmit={submitReview} className="frost-card rounded-xl p-8 w-full max-w-md fade-up ">
             <h3 className="text-xl font-black text-slate-900 mb-6">Rate Your Visit</h3>
 
             <div className="space-y-5">
@@ -782,7 +782,7 @@ function PatientVisits() {
           onClick={() => setDetailModal(null)}
         >
           <div
-            className="frost-card rounded-[2rem] p-8 w-full max-w-md fade-up shadow-2xl"
+            className="frost-card rounded-xl p-8 w-full max-w-md fade-up "
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-start justify-between gap-3 mb-6">
@@ -803,7 +803,7 @@ function PatientVisits() {
             {detailModal.doctor ? (
               <div className="p-5 rounded-2xl bg-slate-50 border border-slate-100 mb-5">
                 <div className="flex items-center gap-3">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-100 to-cyan-100 text-teal-700 font-black text-xl">
+                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 font-black text-xl">
                     {(detailModal.doctor.doctorName || "D").charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
@@ -884,3 +884,5 @@ function PatientVisits() {
 }
 
 export default PatientVisits;
+
+

@@ -29,7 +29,7 @@ function RegisterPatient() {
       <div className="w-full max-w-md">
         {/* Header */}
         <div className="text-center mb-8 fade-up">
-          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-400 shadow-xl shadow-teal-200">
+          <div className="mx-auto mb-5 flex h-16 w-16 items-center justify-center rounded-2xl bg-teal-600  shadow-teal-200">
             <svg className="h-8 w-8 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
             </svg>
@@ -39,7 +39,7 @@ function RegisterPatient() {
         </div>
 
         {/* Form Card */}
-        <form onSubmit={handleSubmit} className="frost-card rounded-[2rem] p-8 space-y-5 fade-up stagger-1">
+        <form onSubmit={handleSubmit} className="frost-card rounded-xl p-8 space-y-5 fade-up stagger-1">
           <div>
             <label className="block text-xs font-bold uppercase tracking-widest text-slate-500 mb-2">Full Name *</label>
             <input
@@ -166,3 +166,5 @@ function RegisterPatient() {
 }
 
 export default RegisterPatient;
+
+

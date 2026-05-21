@@ -10,7 +10,7 @@ function About() {
 
   return (
     <section className="shell py-10 fade-up">
-      <div className="frost-card overflow-hidden rounded-[2.5rem] p-8 md:p-12 lg:p-16">
+      <div className="frost-card overflow-hidden rounded-xl p-8 md:p-12 lg:p-16">
         <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div>
             <span className="inline-block rounded-full bg-cyan-100/70 px-4 py-1 text-sm font-semibold text-cyan-900">
@@ -88,3 +88,4 @@ function About() {
 }
 
 export default About;
+

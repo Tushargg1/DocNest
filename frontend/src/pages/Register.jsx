@@ -41,7 +41,7 @@ function Register() {
           <p className="mt-3 text-slate-600 font-medium">Create your credentials to get started.</p>
         </div>
 
-        <form onSubmit={handleRegister} className="frost-card mt-10 space-y-5 rounded-[2.5rem] p-10 fade-up stagger-2 shadow-2xl">
+        <form onSubmit={handleRegister} className="frost-card mt-10 space-y-5 rounded-xl p-10 fade-up stagger-2 ">
           <div>
             <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Full Name</label>
             <input
@@ -109,3 +109,4 @@ function Register() {
 }
 
 export default Register;
+

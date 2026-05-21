@@ -123,7 +123,7 @@ function HealthIntake() {
   if (!started) {
     return (
       <div className="shell max-w-2xl py-12 fade-up">
-        <div className="frost-card rounded-[2.5rem] p-10 text-center">
+        <div className="frost-card rounded-xl p-10 text-center">
           <div className="text-6xl mb-6">🩺</div>
           <h1 className="page-title text-3xl">Build Your Medical Profile</h1>
           <p className="mt-4 text-slate-500 leading-relaxed max-w-md mx-auto">
@@ -161,7 +161,7 @@ function HealthIntake() {
   if (summary) {
     return (
       <div className="shell max-w-2xl py-10 fade-up">
-        <div className="frost-card rounded-[2.5rem] p-8">
+        <div className="frost-card rounded-xl p-8">
           <div className="text-center mb-6">
             <div className="text-5xl mb-3">✅</div>
             <h2 className="text-2xl font-black text-slate-900">Review Your Medical Profile</h2>
@@ -277,7 +277,7 @@ function HealthIntake() {
           </div>
           <div className="h-2 rounded-full bg-slate-200 overflow-hidden">
             <div
-              className="h-full rounded-full bg-gradient-to-r from-teal-500 to-cyan-400 transition-all duration-500"
+              className="h-full rounded-full bg-teal-500 transition-all duration-500"
               style={{ width: `${progress.percentage}%` }}
             />
           </div>
@@ -301,7 +301,7 @@ function HealthIntake() {
 
       {/* Current Question Card */}
       {currentQuestion && (
-        <div className="frost-card rounded-[2rem] p-8 fade-up">
+        <div className="frost-card rounded-xl p-8 fade-up">
           <h2 className="text-xl font-black text-slate-900 mb-2">
             {currentQuestion.question}
           </h2>
@@ -471,3 +471,5 @@ function HealthIntake() {
 }
 
 export default HealthIntake;
+
+

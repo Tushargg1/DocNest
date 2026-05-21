@@ -31,7 +31,7 @@ function ApplyClinic() {
           <p className="mt-3 text-slate-600">Apply to join the DocNest healthcare network.</p>
         </div>
 
-        <form onSubmit={handleSubmit} className="frost-card mt-10 space-y-5 rounded-[2.5rem] p-10 fade-up shadow-2xl">
+        <form onSubmit={handleSubmit} className="frost-card mt-10 space-y-5 rounded-xl p-10 fade-up ">
           <input
             placeholder="Clinic Owner Full Name / Admin Name"
             value={form.fullName}
@@ -82,3 +82,4 @@ function ApplyClinic() {
 }
 
 export default ApplyClinic;
+

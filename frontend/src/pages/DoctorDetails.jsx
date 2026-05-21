@@ -123,8 +123,8 @@ function DoctorDetails() {
       </Link>
 
       {/* Hero Banner */}
-      <div className="frost-card overflow-hidden rounded-[2.5rem] mb-8">
-        <div className="relative h-44 bg-gradient-to-br from-slate-900 via-teal-900 to-emerald-800 overflow-hidden">
+      <div className="frost-card overflow-hidden rounded-xl mb-8">
+        <div className="relative h-44 bg-teal-600 overflow-hidden">
           {/* Decorative elements */}
           <div className="absolute -top-10 -right-10 h-40 w-40 rounded-full bg-teal-500/20 blur-2xl" />
           <div className="absolute bottom-0 left-1/4 h-32 w-32 rounded-full bg-emerald-400/10 blur-xl" />
@@ -139,8 +139,8 @@ function DoctorDetails() {
         <div className="relative px-8 pb-8">
           {/* Avatar */}
           <div className="absolute -top-14 left-8">
-            <div className="h-28 w-28 rounded-3xl bg-white p-1.5 shadow-2xl">
-              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-gradient-to-br from-teal-500 to-cyan-400 text-4xl font-black text-white">
+            <div className="h-28 w-28 rounded-3xl bg-white p-1.5 ">
+              <div className="flex h-full w-full items-center justify-center rounded-2xl bg-teal-600 text-4xl font-black text-white">
                 {doctor.doctorName.charAt(0)}
               </div>
             </div>
