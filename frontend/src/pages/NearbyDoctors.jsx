@@ -1,8 +1,10 @@
 import { useEffect, useState, useRef } from "react";
 import { Link } from "react-router-dom";
 import api from "../services/api";
+import { useAuth } from "../context/AuthContext";
 
 function NearbyDoctors() {
+  const { session } = useAuth();
   const [location, setLocation] = useState({ lat: "28.6139", lng: "77.2090" });
   const [placeName, setPlaceName] = useState("New Delhi, India");
   const [placeSearch, setPlaceSearch] = useState("");
@@ -16,7 +18,22 @@ function NearbyDoctors() {
   const [error, setError] = useState("");
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSpec, setFilterSpec] = useState("");
+  const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [likedClinics, setLikedClinics] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("liked-clinics") || "[]")); }
+    catch { return new Set(); }
+  });
   const searchTimeout = useRef(null);
+
+  const toggleLikeClinic = (clinicId, e) => {
+    if (e) e.stopPropagation();
+    setLikedClinics(prev => {
+      const next = new Set(prev);
+      if (next.has(clinicId)) next.delete(clinicId); else next.add(clinicId);
+      localStorage.setItem("liked-clinics", JSON.stringify([...next]));
+      return next;
+    });
+  };
 
   const fetchDoctors = async (lat, lng) => {
     setLoading(true);
@@ -119,14 +136,15 @@ function NearbyDoctors() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Filter doctors by search query and specialization
+  // Filter doctors by search query, specialization, and favorites
   const filteredDoctors = doctors.filter((doc) => {
     const matchesSearch = !searchQuery || 
       doc.doctorName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.clinicName?.toLowerCase().includes(searchQuery.toLowerCase()) ||
       doc.specialization?.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesSpec = !filterSpec || doc.specialization === filterSpec;
-    return matchesSearch && matchesSpec;
+    const matchesFav = !showFavoritesOnly || likedClinics.has(doc.clinicId);
+    return matchesSearch && matchesSpec && matchesFav;
   });
 
   // Get all unique specializations for filter dropdown
@@ -153,108 +171,97 @@ function NearbyDoctors() {
     .map((clinic) => ({ ...clinic, specializations: Array.from(clinic.specializations) }))
     .sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
 
-  const selectedClinic = groupedClinics.find((c) => c.clinicId === selectedClinicId) || null;
-
   return (
     <div className="shell py-10 fade-up" onClick={() => setShowSuggestions(false)}>
-      {/* Page Header */}
-      <div className="mb-8">
-        <p className="section-label">Healthcare Network</p>
-        <h1 className="page-title mt-1">Find Nearby Clinics</h1>
-        <p className="mt-2 text-slate-500 max-w-xl">
-          Clinics are grouped by location. Each clinic banner shows all available specializations.
-        </p>
-      </div>
-
-      {/* Location Search Card */}
-      <div className="frost-card rounded-2xl p-6 mb-8 fade-up stagger-1">
-        <div className="flex flex-wrap items-end gap-4">
-          <div className="flex-1 min-w-[240px] relative">
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2 block">📍 Your Location</label>
-            <div className="flex items-center gap-2">
-              <div className="flex-1 relative">
-                <input
-                  value={placeSearch || ""}
-                  onChange={(e) => handlePlaceInputChange(e.target.value)}
-                  onFocus={() => placeSuggestions.length > 0 && setShowSuggestions(true)}
-                  className="field"
-                  placeholder={placeName || "Search for your city, area or locality..."}
-                />
-                {searchingPlace && (
-                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
-                    <svg className="h-4 w-4 animate-spin text-teal-500" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-                  </div>
-                )}
-                {/* Suggestions Dropdown */}
-                {showSuggestions && placeSuggestions.length > 0 && (
-                  <div className="absolute z-50 top-full left-0 right-0 mt-1 frost-card rounded-xl shadow-2xl overflow-hidden">
-                    {placeSuggestions.map((place, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => selectPlace(place)}
-                        className="w-full text-left px-4 py-3 hover:bg-teal-50 dark:hover:bg-teal-900/20 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0"
-                      >
-                        <p className="text-sm font-medium text-slate-800 dark:text-slate-200">{place.name}</p>
-                      </button>
-                    ))}
-                  </div>
-                )}
-              </div>
+      {/* Page Header + Compact Location */}
+      <div className="mb-6 flex flex-wrap items-start justify-between gap-4">
+        <div>
+          <p className="section-label">Healthcare Network</p>
+          <h1 className="page-title mt-1">Find Nearby Clinics</h1>
+        </div>
+        {/* Compact location picker */}
+        <div className="relative min-w-[260px] max-w-[340px]">
+          <div className="flex items-center gap-2">
+            <div className="relative flex-1">
+              <input
+                value={placeSearch || ""}
+                onChange={(e) => handlePlaceInputChange(e.target.value)}
+                onFocus={() => placeSuggestions.length > 0 && setShowSuggestions(true)}
+                className="field text-sm py-2"
+                placeholder={placeName || "Search location..."}
+              />
+              {showSuggestions && placeSuggestions.length > 0 && (
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                  {placeSuggestions.map((place, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => selectPlace(place)}
+                      className="w-full text-left px-3 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0 text-sm"
+                    >
+                      {place.name}
+                    </button>
+                  ))}
+                </div>
+              )}
             </div>
-            {/* Current location display */}
-            {placeName && !placeSearch && (
-              <p className="mt-1.5 text-xs text-teal-600 font-medium">
-                📍 Showing clinics near: <strong>{placeName}</strong>
-              </p>
-            )}
-          </div>
-          <div className="flex gap-2 flex-wrap">
             <button
               onClick={useMyLocation}
               disabled={locating}
-              className="btn-ghost px-4 py-2.5 text-sm flex items-center gap-2"
+              className="btn-ghost px-3 py-2 text-xs shrink-0"
+              title="Use GPS"
             >
-              {locating ? (
-                <svg className="h-4 w-4 animate-spin" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" /></svg>
-              ) : "📍"}
-              {locating ? "Detecting..." : "Use GPS"}
+              {locating ? "..." : "GPS"}
             </button>
           </div>
+          {placeName && !placeSearch && (
+            <p className="mt-1 text-[11px] text-teal-600 font-medium truncate">Near: {placeName}</p>
+          )}
         </div>
-        {error && <p className="mt-3 text-sm text-rose-600 font-medium">{error}</p>}
       </div>
+
+      {error && <div className="alert-error mb-4"><p className="text-sm">{error}</p></div>}
 
       {/* Search & Filter */}
       {doctors.length > 0 && (
-        <div className="frost-card rounded-2xl p-5 mb-6 fade-up stagger-2">
+        <div className="frost-card rounded-xl p-4 mb-6 fade-up stagger-2">
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex-1 min-w-[200px]">
               <input
                 type="text"
-                placeholder="🔍 Search by doctor name, clinic, or specialization..."
+                placeholder="Search by doctor name, clinic, or specialization..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="field"
+                className="field text-sm py-2"
               />
             </div>
             <select
               value={filterSpec}
               onChange={(e) => setFilterSpec(e.target.value)}
-              className="field max-w-[200px]"
+              className="field max-w-[180px] text-sm py-2"
             >
               <option value="">All Specializations</option>
               {allSpecializations.map((spec) => (
                 <option key={spec} value={spec}>{spec}</option>
               ))}
             </select>
-            {(searchQuery || filterSpec) && (
-              <button onClick={() => { setSearchQuery(""); setFilterSpec(""); }} className="btn-ghost px-3 py-2 text-xs">
-                ✕ Clear
+            {session && session.role === "PATIENT" && (
+              <button
+                onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+                className={`btn-ghost px-3 py-2 text-xs flex items-center gap-1.5 ${showFavoritesOnly ? "border-teal-500 text-teal-600 bg-teal-50" : ""}`}
+              >
+                <svg className="h-3.5 w-3.5" fill={showFavoritesOnly ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                Favorites{likedClinics.size > 0 ? ` (${likedClinics.size})` : ""}
+              </button>
+            )}
+            {(searchQuery || filterSpec || showFavoritesOnly) && (
+              <button onClick={() => { setSearchQuery(""); setFilterSpec(""); setShowFavoritesOnly(false); }} className="btn-ghost px-3 py-2 text-xs">
+                Clear
               </button>
             )}
           </div>
           <p className="text-xs text-slate-400 mt-2">
             Showing {filteredDoctors.length} of {doctors.length} doctors
+            {showFavoritesOnly && " (favorites only)"}
           </p>
         </div>
       )}
@@ -266,130 +273,101 @@ function NearbyDoctors() {
         </div>
       )}
 
-      {/* Clinic Cards */}
+      {/* Clinic Cards — expand inline on click */}
       {!loading && groupedClinics.length > 0 && (
         <>
-          <p className="text-sm font-semibold text-slate-500 mb-4">
+          <p className="text-sm font-medium text-slate-500 mb-4">
             {groupedClinics.length} clinic{groupedClinics.length !== 1 ? "s" : ""} found nearby
           </p>
-          <div className="grid gap-6 md:grid-cols-2">
-            {groupedClinics.map((clinic, idx) => (
-              <article
-                key={clinic.clinicId}
-                className={`clinic-card fade-up stagger-${(idx % 3) + 1}`}
-                onClick={() => setSelectedClinicId(clinic.clinicId === selectedClinicId ? null : clinic.clinicId)}
-              >
-                {/* Clinic Banner */}
-                <div className="clinic-banner">
-                  <div className="relative z-10">
-                    <div className="flex items-start justify-between gap-3">
-                      <div>
-                        <h3 className="text-xl font-black tracking-tight">{clinic.clinicName}</h3>
-                        <p className="text-sm text-white/70 mt-0.5">{clinic.clinicAddress}</p>
-                      </div>
-                      <div className="shrink-0 text-center">
-                        <div className="text-2xl font-black text-teal-300">
-                          {clinic.distanceKm != null ? clinic.distanceKm.toFixed(1) : "—"}
+          <div className="space-y-4">
+            {groupedClinics.map((clinic) => {
+              const isExpanded = selectedClinicId === clinic.clinicId;
+              const isLiked = likedClinics.has(clinic.clinicId);
+              return (
+                <article key={clinic.clinicId} className={`frost-card overflow-hidden transition-all ${isExpanded ? "ring-2 ring-teal-200" : ""}`}>
+                  {/* Clinic Header — always visible */}
+                  <div
+                    className="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-slate-50 transition-colors"
+                    onClick={() => setSelectedClinicId(isExpanded ? null : clinic.clinicId)}
+                  >
+                    <div className="flex items-center gap-4 min-w-0">
+                      {/* Expand arrow */}
+                      <svg className={`h-4 w-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
+                      <div className="min-w-0">
+                        <h3 className="font-bold text-slate-900 truncate">{clinic.clinicName}</h3>
+                        <p className="text-xs text-slate-500 truncate mt-0.5">{clinic.clinicAddress}</p>
+                        <div className="mt-1.5 flex flex-wrap gap-1">
+                          {clinic.specializations.map((spec) => (
+                            <span key={spec} className="spec-tag-light">{spec}</span>
+                          ))}
                         </div>
-                        <p className="text-[9px] font-bold text-white/50 uppercase tracking-wide">km away</p>
                       </div>
                     </div>
-
-                    {/* Specialization Tags */}
-                    <div className="mt-4 flex flex-wrap gap-1.5">
-                      {clinic.specializations.map((spec) => (
-                        <span key={spec} className="spec-tag">{spec}</span>
-                      ))}
-                      {clinic.specializations.length === 0 && (
-                        <span className="spec-tag">General Practice</span>
-                      )}
+                    <div className="flex items-center gap-3 shrink-0">
+                      {/* Like button */}
+                      <button
+                        onClick={(e) => toggleLikeClinic(clinic.clinicId, e)}
+                        className="p-1.5 rounded-lg hover:bg-slate-100 transition"
+                        title={isLiked ? "Remove from favorites" : "Add to favorites"}
+                      >
+                        <svg className={`h-5 w-5 ${isLiked ? "text-red-500 fill-red-500" : "text-slate-300 hover:text-slate-400"}`} fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                      </button>
+                      {/* Distance */}
+                      <div className="text-right">
+                        <p className="text-lg font-bold text-teal-600">{clinic.distanceKm != null ? clinic.distanceKm.toFixed(1) : "—"}</p>
+                        <p className="text-[10px] text-slate-400 uppercase">km</p>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                {/* Clinic Info */}
-                <div className="p-5">
-                  <div className="flex items-center justify-between">
-                    <span className="text-sm font-semibold text-slate-600">
-                      {clinic.doctors.length} doctor{clinic.doctors.length !== 1 ? "s" : ""} available
-                    </span>
-                    <button
-                      onClick={(e) => { e.stopPropagation(); setSelectedClinicId(clinic.clinicId === selectedClinicId ? null : clinic.clinicId); }}
-                      className="brand-btn px-5 py-2 text-xs"
-                    >
-                      {clinic.clinicId === selectedClinicId ? "Hide Doctors" : "View Doctors"}
-                    </button>
-                  </div>
-                </div>
-              </article>
-            ))}
+                  {/* Expanded: Clinic details + doctors */}
+                  {isExpanded && (
+                    <div className="border-t border-slate-100 bg-slate-50 p-5">
+                      <div className="flex items-center justify-between mb-4">
+                        <p className="text-sm font-medium text-slate-600">
+                          {clinic.doctors.length} doctor{clinic.doctors.length !== 1 ? "s" : ""} available
+                        </p>
+                      </div>
+                      <div className="grid gap-3 sm:grid-cols-2">
+                        {clinic.doctors.map((doc) => (
+                          <div key={doc.doctorUserId} className="bg-white rounded-lg border border-slate-200 p-4">
+                            <div className="flex items-start gap-3">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 font-bold text-sm">
+                                {(doc.doctorName || "D").charAt(0)}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="font-semibold text-slate-900 text-sm">Dr. {doc.doctorName}</p>
+                                <p className="text-xs text-teal-600 mt-0.5">{doc.specialization || "General"}</p>
+                                <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
+                                  {doc.roomId && <span>Room {doc.roomId}</span>}
+                                  {doc.averageRating > 0 && <span>{doc.averageRating} rating</span>}
+                                </div>
+                              </div>
+                            </div>
+                            <Link
+                              to={`/doctor/${doc.doctorUserId}?clinicId=${clinic.clinicId}`}
+                              className="brand-btn mt-3 block py-2 text-center text-xs w-full"
+                              onClick={(e) => e.stopPropagation()}
+                            >
+                              Book Appointment
+                            </Link>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </article>
+              );
+            })}
           </div>
         </>
       )}
 
       {!loading && groupedClinics.length === 0 && !error && (
-        <div className="rounded-2xl border-2 border-dashed border-slate-200 p-16 text-center">
-          <div className="text-4xl mb-4">🏥</div>
+        <div className="rounded-xl border border-dashed border-slate-200 p-12 text-center">
           <p className="text-lg font-semibold text-slate-500">No clinics found near this location.</p>
-          <p className="mt-2 text-sm text-slate-400">Try using your GPS location or adjust the coordinates.</p>
+          <p className="mt-2 text-sm text-slate-400">Try using your GPS location or search for a different area.</p>
         </div>
-      )}
-
-      {/* Doctor Panel for Selected Clinic */}
-      {selectedClinic && (
-        <section className="frost-card mt-8 rounded-2xl overflow-hidden fade-up">
-          {/* Header */}
-          <div className="glass-navy px-8 py-6 flex items-start justify-between gap-4">
-            <div>
-              <p className="text-[10px] font-black uppercase tracking-widest text-teal-300">Doctors at Clinic</p>
-              <h2 className="text-2xl font-black text-white mt-1">{selectedClinic.clinicName}</h2>
-              <p className="text-sm text-white/60 mt-1">{selectedClinic.clinicAddress}</p>
-            </div>
-            <button
-              onClick={() => setSelectedClinicId(null)}
-              className="shrink-0 rounded-xl border border-white/20 bg-white/10 px-4 py-2 text-xs font-bold text-white hover:bg-white/20 transition-colors"
-            >
-              ✕ Close
-            </button>
-          </div>
-
-          {/* Specialization Summary */}
-          <div className="px-8 pt-5 flex flex-wrap gap-2">
-            {selectedClinic.specializations.map((spec) => (
-              <span key={spec} className="spec-tag-light">{spec}</span>
-            ))}
-          </div>
-
-          {/* Doctor Cards */}
-          <div className="p-6 grid gap-4 md:grid-cols-2">
-            {selectedClinic.doctors.map((doc) => (
-              <article key={doc.doctorUserId} className="frost-card rounded-2xl p-5 hover:-translate-y-1 transition-transform">
-                <div className="flex items-start gap-4">
-                  <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 font-black text-lg">
-                    {(doc.doctorName || "D").charAt(0)}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <h3 className="font-bold text-slate-900">Dr. {doc.doctorName}</h3>
-                    <span className="spec-tag-light mt-1 inline-flex">{doc.specialization || "General"}</span>
-                    <div className="mt-2 flex items-center gap-3 text-xs text-slate-500">
-                      {doc.roomId && <span>🚪 Room {doc.roomId}</span>}
-                      {doc.averageRating && (
-                        <span>⭐ {doc.averageRating}</span>
-                      )}
-                    </div>
-                  </div>
-                </div>
-                <Link
-                  to={`/doctor/${doc.doctorUserId}?clinicId=${selectedClinic.clinicId}`}
-                  className="brand-btn mt-4 block py-2.5 text-center text-xs"
-                  onClick={(e) => e.stopPropagation()}
-                >
-                  Book Appointment →
-                </Link>
-              </article>
-            ))}
-          </div>
-        </section>
       )}
     </div>
   );

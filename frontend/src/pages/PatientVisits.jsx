@@ -333,40 +333,49 @@ function PatientVisits() {
         </section>
       )}
 
-      {/* Post-visit Reviews */}
-      {completedWithoutReview.length > 0 && (
-        <section className="mb-8">
-          <div className="frost-card rounded-2xl p-6 border-l-4 border-amber-400">
-            <div className="flex items-center gap-3 mb-3">
-              <span className="text-2xl">⭐</span>
-              <div>
-                <p className="font-black text-slate-900">Rate Your Recent Visit</p>
-                <p className="text-xs text-slate-500">Help us improve by sharing your experience</p>
+      {/* Post-visit Reviews — only show when visit record exists AND prescription uploaded */}
+      {(() => {
+        const reviewableAppts = completedWithoutReview.filter(appt => {
+          // Find matching visit record for this appointment
+          const visitForAppt = visits.find(v => v.appointmentId === (appt.appointmentId || appt.id));
+          // Require: visit exists AND prescription photo uploaded
+          return visitForAppt && visitForAppt.prescriptionPhotoUrl;
+        });
+        if (reviewableAppts.length === 0) return null;
+        return (
+          <section className="mb-8">
+            <div className="frost-card rounded-xl p-6 border-l-4 border-teal-400">
+              <div className="mb-3">
+                <p className="font-bold text-slate-900">Rate Your Recent Visit</p>
+                <p className="text-xs text-slate-500 mt-0.5">You can review appointments where your visit was recorded and prescription uploaded.</p>
+              </div>
+              <div className="flex gap-2 flex-wrap">
+                {reviewableAppts.slice(0, 3).map((appt) => {
+                  const visitForAppt = visits.find(v => v.appointmentId === (appt.appointmentId || appt.id));
+                  return (
+                    <button
+                      key={appt.appointmentId}
+                      onClick={() =>
+                        setReviewForm({
+                          show: true,
+                          apptId: appt.appointmentId,
+                          doctorName: "your doctor",
+                          attended: null,
+                          rating: 5,
+                          comment: "",
+                        })
+                      }
+                      className="brand-btn-outline px-4 py-2 text-xs"
+                    >
+                      Review visit on {formatDate(appt.startTime)} {visitForAppt?.diagnosis ? `(${visitForAppt.diagnosis})` : ""}
+                    </button>
+                  );
+                })}
               </div>
             </div>
-            <div className="flex gap-2 flex-wrap">
-              {completedWithoutReview.slice(0, 3).map((appt) => (
-                <button
-                  key={appt.appointmentId}
-                  onClick={() =>
-                    setReviewForm({
-                      show: true,
-                      apptId: appt.appointmentId,
-                      doctorName: "your doctor",
-                      attended: null,
-                      rating: 5,
-                      comment: "",
-                    })
-                  }
-                  className="brand-btn-outline px-4 py-2 text-xs"
-                >
-                  Review #{appt.appointmentId} ({formatDate(appt.startTime)})
-                </button>
-              ))}
-            </div>
-          </div>
-        </section>
-      )}
+          </section>
+        );
+      })()}
 
       {/* Favorite Doctors */}
       {favorites.length > 0 && (
