@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/pdf")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class PdfController {
 
     private final PdfService pdfService;

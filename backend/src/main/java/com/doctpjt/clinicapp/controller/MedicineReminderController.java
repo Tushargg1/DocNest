@@ -15,7 +15,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/medicine-reminders")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class MedicineReminderController {
 
     private final MedicineReminderService reminderService;

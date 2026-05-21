@@ -25,7 +25,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/appointments")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class AppointmentController {
 
     private final AppointmentService appointmentService;

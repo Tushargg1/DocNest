@@ -17,7 +17,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/upload")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174", "https://docnest-3-v5sy.onrender.com"})
 public class UploadController {
 
     private final CloudinaryService cloudinaryService;

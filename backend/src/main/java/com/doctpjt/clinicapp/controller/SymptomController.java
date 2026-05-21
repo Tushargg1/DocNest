@@ -12,7 +12,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/symptoms")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class SymptomController {
 
     private final SymptomCheckerService symptomCheckerService;

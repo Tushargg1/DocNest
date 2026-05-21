@@ -21,7 +21,6 @@ import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 @RequestMapping("/api/consent")
-@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class ConsentController {
 
     private final ConsentService consentService;
