@@ -5,10 +5,10 @@ import ProtectedRoute from "./components/ProtectedRoute";
 import AdminDashboard from "./pages/AdminDashboard";
 import ApplyClinic from "./pages/ApplyClinic";
 import BookAppointment from "./pages/BookAppointment";
-import About from "./pages/About";
 import DoctorDetails from "./pages/DoctorDetails";
 import DoctorWorkspace from "./pages/DoctorWorkspace";
 import ClinicWorkspace from "./pages/ClinicWorkspace";
+import Legal from "./pages/Legal";
 import Home from "./pages/Home";
 import Login from "./pages/Login";
 import NearbyDoctors from "./pages/NearbyDoctors";
@@ -18,7 +18,6 @@ import Profile from "./pages/Profile";
 import SymptomChecker from "./pages/SymptomChecker";
 import HealthIntake from "./pages/HealthIntake";
 import Notifications from "./pages/Notifications";
-import PatientConsent from "./pages/PatientConsent";
 import MyMedicines from "./pages/MyMedicines";
 import HealthIntakeReminder from "./components/HealthIntakeReminder";
 
@@ -29,7 +28,6 @@ function App() {
       <main className="flex-1">
         <Routes>
           <Route path="/" element={<Home />} />
-          <Route path="/about" element={<About />} />
           <Route path="/login" element={<Login />} />
           <Route path="/register" element={<RegisterPatient />} />
           <Route path="/register/patient" element={<RegisterPatient />} />
@@ -101,14 +99,6 @@ function App() {
             }
           />
           <Route
-            path="/consent"
-            element={
-              <ProtectedRoute roles={["PATIENT"]}>
-                <PatientConsent />
-              </ProtectedRoute>
-            }
-          />
-          <Route
             path="/medicines"
             element={
               <ProtectedRoute roles={["PATIENT"]}>
@@ -124,6 +114,10 @@ function App() {
               </ProtectedRoute>
             }
           />
+          <Route path="/privacy" element={<Legal />} />
+          <Route path="/terms" element={<Legal />} />
+          <Route path="/refund" element={<Legal />} />
+          <Route path="/disclaimer" element={<Legal />} />
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

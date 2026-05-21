@@ -11,12 +11,12 @@ import com.doctpjt.clinicapp.repository.DoctorLeaveRepository;
 import com.doctpjt.clinicapp.repository.DoctorProfileRepository;
 import com.doctpjt.clinicapp.repository.RatingRepository;
 import com.doctpjt.clinicapp.service.ClinicalEmbeddingService;
-import com.doctpjt.clinicapp.service.ConsentService;
 import com.doctpjt.clinicapp.service.ScheduleService;
 import com.doctpjt.clinicapp.dto.ScheduleDtos.WeekScheduleResponse;
 import jakarta.validation.Valid;
 import java.time.LocalDate;
 import java.util.List;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -29,6 +29,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 import java.time.LocalDateTime;
 import com.doctpjt.clinicapp.dto.WorkspaceDtos.DoctorDashboardResponse;
 import com.doctpjt.clinicapp.dto.WorkspaceDtos.DoctorPatientSummaryResponse;
@@ -61,7 +62,6 @@ public class DoctorController {
     private final UserRepository userRepository;
     private final ClinicRepository clinicRepository;
     private final ClinicalEmbeddingService clinicalEmbeddingService;
-    private final ConsentService consentService;
     private final ScheduleService scheduleService;
 
     public DoctorController(
@@ -74,7 +74,6 @@ public class DoctorController {
         UserRepository userRepository,
         ClinicRepository clinicRepository,
         ClinicalEmbeddingService clinicalEmbeddingService,
-        ConsentService consentService,
         ScheduleService scheduleService
     ) {
         this.doctorProfileRepository = doctorProfileRepository;
@@ -86,7 +85,6 @@ public class DoctorController {
         this.userRepository = userRepository;
         this.clinicRepository = clinicRepository;
         this.clinicalEmbeddingService = clinicalEmbeddingService;
-        this.consentService = consentService;
         this.scheduleService = scheduleService;
     }
 
@@ -179,13 +177,6 @@ public class DoctorController {
         return ratingRepository.findByDoctorUserId(doctorUserId);
     }
 
-    @PostMapping("/{patientId}/consent-request")
-    @PreAuthorize("hasRole('DOCTOR')")
-    public com.doctpjt.clinicapp.entity.Consent requestPatientConsent(@PathVariable Long patientId, Authentication authentication) {
-        Long doctorUserId = (Long) authentication.getPrincipal();
-        return consentService.requestConsent(patientId, doctorUserId);
-    }
-
     @GetMapping("/{patientId}/summary")
     @PreAuthorize("hasRole('DOCTOR') or hasRole('ADMIN')")
     @AuditAccess(action = "GENERATE_AI_SUMMARY", subjectIdParam = "patientId")
@@ -193,7 +184,18 @@ public class DoctorController {
         boolean admin = authentication.getAuthorities().stream().anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
         if (!admin) {
             Long doctorUserId = (Long) authentication.getPrincipal();
-            consentService.assertActiveConsent(patientId, doctorUserId);
+            // Time-based access: only allow if patient has an active appointment TODAY with this doctor
+            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+            LocalDateTime todayEnd = todayStart.plusDays(1);
+            List<Appointment> todayAppointments = appointmentRepository.findByDoctorUserIdAndStartTimeBetween(
+                doctorUserId, todayStart, todayEnd);
+            boolean hasActiveToday = todayAppointments.stream()
+                .anyMatch(a -> a.getPatientUserId().equals(patientId)
+                    && a.getStatus() == AppointmentStatus.BOOKED);
+            if (!hasActiveToday) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Patient data is only accessible during active appointments");
+            }
         }
         return clinicalEmbeddingService.generatePatientSummary(patientId);
     }

@@ -2,11 +2,16 @@ package com.doctpjt.clinicapp.controller;
 
 import com.doctpjt.clinicapp.dto.VisitDtos.VisitCreateRequest;
 import com.doctpjt.clinicapp.dto.VisitDtos.VisitResponse;
-import com.doctpjt.clinicapp.service.ConsentService;
+import com.doctpjt.clinicapp.entity.Appointment;
+import com.doctpjt.clinicapp.entity.AppointmentStatus;
+import com.doctpjt.clinicapp.repository.AppointmentRepository;
 import com.doctpjt.clinicapp.service.VisitService;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Map;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -18,6 +23,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
 
 @RestController
 @RequestMapping("/api/visits")
@@ -25,11 +31,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class VisitController {
 
     private final VisitService visitService;
-    private final ConsentService consentService;
+    private final AppointmentRepository appointmentRepository;
 
-    public VisitController(VisitService visitService, ConsentService consentService) {
+    public VisitController(VisitService visitService, AppointmentRepository appointmentRepository) {
         this.visitService = visitService;
-        this.consentService = consentService;
+        this.appointmentRepository = appointmentRepository;
     }
 
     @PostMapping
@@ -53,7 +59,18 @@ public class VisitController {
     ) {
         boolean admin = authentication.getAuthorities().stream().anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
         if (!admin) {
-            consentService.assertActiveConsent(patientUserId, doctorUserId);
+            // Time-based access: only allow if patient has an active appointment TODAY with this doctor
+            LocalDateTime todayStart = LocalDate.now().atStartOfDay();
+            LocalDateTime todayEnd = todayStart.plusDays(1);
+            List<Appointment> todayAppointments = appointmentRepository.findByDoctorUserIdAndStartTimeBetween(
+                doctorUserId, todayStart, todayEnd);
+            boolean hasActiveToday = todayAppointments.stream()
+                .anyMatch(a -> a.getPatientUserId().equals(patientUserId)
+                    && a.getStatus() == AppointmentStatus.BOOKED);
+            if (!hasActiveToday) {
+                throw new ResponseStatusException(HttpStatus.FORBIDDEN,
+                    "Patient data is only accessible during active appointments");
+            }
         }
         return visitService.getDoctorPatientHistory(doctorUserId, patientUserId);
     }

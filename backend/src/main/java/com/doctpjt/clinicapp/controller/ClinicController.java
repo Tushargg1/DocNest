@@ -8,11 +8,15 @@ import com.doctpjt.clinicapp.dto.ClinicDtos.DoctorCardResponse;
 import com.doctpjt.clinicapp.dto.ClinicDtos.DoctorRegisterByClinicRequest;
 import com.doctpjt.clinicapp.dto.ClinicDtos.DoctorUpdateByClinicRequest;
 import com.doctpjt.clinicapp.entity.Clinic;
+import com.doctpjt.clinicapp.entity.NotificationType;
 import com.doctpjt.clinicapp.dto.WorkspaceDtos.ClinicDashboardResponse;
 import com.doctpjt.clinicapp.service.ClinicService;
+import com.doctpjt.clinicapp.service.NotificationService;
 import jakarta.validation.Valid;
 import java.util.List;
+import java.util.Map;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -29,9 +33,11 @@ import org.springframework.web.bind.annotation.RestController;
 public class ClinicController {
 
     private final ClinicService clinicService;
+    private final NotificationService notificationService;
 
-    public ClinicController(ClinicService clinicService) {
+    public ClinicController(ClinicService clinicService, NotificationService notificationService) {
         this.clinicService = clinicService;
+        this.notificationService = notificationService;
     }
 
     @PostMapping
@@ -110,5 +116,36 @@ public class ClinicController {
     @PreAuthorize("hasRole('ADMIN') or (hasRole('CLINIC') and @clinicService.isClinicOwnedBy(#id, principal))")
     public ClinicDoctorResponse registerDoctor(@PathVariable Long id, @Valid @RequestBody DoctorRegisterByClinicRequest request) {
         return clinicService.registerDoctorByClinic(id, request);
+    }
+
+    @PostMapping("/send-revisit-reminder")
+    @PreAuthorize("hasRole('CLINIC') or hasRole('ADMIN')")
+    public Map<String, String> sendRevisitReminder(@RequestBody Map<String, Object> body, Authentication authentication) {
+        Object patientUserIdObj = body.get("patientUserId");
+        String message = (String) body.get("message");
+
+        if (patientUserIdObj == null) {
+            throw new IllegalArgumentException("patientUserId is required");
+        }
+
+        Long patientUserId;
+        if (patientUserIdObj instanceof Number) {
+            patientUserId = ((Number) patientUserIdObj).longValue();
+        } else {
+            patientUserId = Long.parseLong(patientUserIdObj.toString());
+        }
+
+        if (message == null || message.isBlank()) {
+            message = "Your clinic recommends scheduling a follow-up visit. Please book at your convenience.";
+        }
+
+        notificationService.createNotification(
+            patientUserId,
+            NotificationType.REVISIT_ALERT,
+            "Follow-up Reminder",
+            message
+        );
+
+        return Map.of("status", "sent");
     }
 }
