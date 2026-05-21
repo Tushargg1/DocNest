@@ -73,7 +73,8 @@ public class SecurityConfig {
             "http://localhost:5173",
             "http://localhost:5174",
             "https://docnest.vercel.app",
-            "https://doc-nest.vercel.app"
+            "https://doc-nest.vercel.app",
+            "https://docnest-3-v5sy.onrender.com"
         ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
