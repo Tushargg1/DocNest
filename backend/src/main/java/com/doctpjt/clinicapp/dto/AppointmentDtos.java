@@ -27,6 +27,7 @@ public class AppointmentDtos {
         Long patientUserId,
         Long clinicId,
         String tokenNumber,
+        String checkInCode,
         LocalDateTime startTime,
         LocalDateTime endTime,
         String status,

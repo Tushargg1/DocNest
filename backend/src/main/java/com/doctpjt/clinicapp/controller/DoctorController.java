@@ -113,7 +113,23 @@ public class DoctorController {
     }
 
     @GetMapping("/{doctorUserId}/profile")
-    public DoctorProfile getProfile(@PathVariable Long doctorUserId) {
+    public DoctorProfile getProfile(@PathVariable Long doctorUserId, Authentication authentication) {
+        // If the caller is the doctor themselves (or admin), return the profile regardless of approval status.
+        boolean isSelf = false;
+        boolean isAdmin = false;
+        if (authentication != null && authentication.getPrincipal() instanceof Long) {
+            Long callerId = (Long) authentication.getPrincipal();
+            isSelf = callerId.equals(doctorUserId);
+            isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        }
+
+        if (isSelf || isAdmin) {
+            return doctorProfileRepository.findByUserId(doctorUserId)
+                .orElseThrow(() -> new IllegalArgumentException("Doctor profile not found"));
+        }
+
+        // Public access: only show ACTIVE profiles
         return doctorProfileRepository.findByUserId(doctorUserId)
             .filter(profile -> profile.getApprovalStatus() == DoctorApprovalStatus.ACTIVE)
             .orElseThrow(() -> new IllegalArgumentException("Doctor profile not found"));
@@ -192,6 +208,7 @@ public class DoctorController {
                 appointment.getPatientUserId(),
                 appointment.getClinicId(),
                 appointment.getTokenNumber(),
+                appointment.getCheckInCode(),
                 appointment.getStartTime(),
                 appointment.getEndTime(),
                 appointment.getStatus().name(),
@@ -319,7 +336,7 @@ public class DoctorController {
 
         return new AppointmentResponse(
             appointment.getId(), appointment.getDoctorUserId(), appointment.getPatientUserId(),
-            appointment.getClinicId(), appointment.getTokenNumber(), appointment.getStartTime(),
+            appointment.getClinicId(), appointment.getTokenNumber(), appointment.getCheckInCode(), appointment.getStartTime(),
             appointment.getEndTime(), appointment.getStatus().name(), appointment.isReviewed(),
             appointment.getAttendedConfirmed()
         );
@@ -374,7 +391,7 @@ public class DoctorController {
 
         return new AppointmentResponse(
             saved.getId(), saved.getDoctorUserId(), saved.getPatientUserId(),
-            saved.getClinicId(), saved.getTokenNumber(), saved.getStartTime(),
+            saved.getClinicId(), saved.getTokenNumber(), saved.getCheckInCode(), saved.getStartTime(),
             saved.getEndTime(), saved.getStatus().name(), saved.isReviewed(),
             saved.getAttendedConfirmed()
         );

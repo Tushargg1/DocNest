@@ -60,9 +60,9 @@ function ClinicWorkspace() {
   };
 
   const tabs = [
-    { id: "overview", label: "📊 Overview" },
-    { id: "doctors", label: "👨‍⚕️ Doctors" },
-    { id: "patients", label: "🧑‍⚕️ Patients" },
+    { id: "overview", label: "Overview" },
+    { id: "doctors", label: "Doctors" },
+    { id: "patients", label: "Patients" },
   ];
 
   if (loading) {
@@ -78,7 +78,6 @@ function ClinicWorkspace() {
   if (!clinic) {
     return (
       <div className="shell max-w-2xl py-20 text-center fade-up">
-        <div className="text-5xl mb-4">🏥</div>
         <h1 className="page-title text-3xl">No Clinic Found</h1>
         <p className="mt-2 text-slate-500">You haven't set up a clinic yet. Go to your Profile to create and manage your clinic details.</p>
         <a href="/profile" className="brand-btn inline-block mt-6 px-8 py-3">Go to Profile →</a>
@@ -97,7 +96,7 @@ function ClinicWorkspace() {
         </div>
         <div className="flex items-center gap-3">
           <span className={`status-badge ${clinic.approved ? "status-booked" : "status-pending"}`}>
-            {clinic.approved ? "● Live & Public" : "○ Pending Approval"}
+            {clinic.approved ? "Live & Public" : "Pending Approval"}
           </span>
           <a href="/profile" className="btn-ghost px-4 py-2 text-xs">Edit Profile →</a>
         </div>
@@ -111,23 +110,22 @@ function ClinicWorkspace() {
 
       {/* Stats Row */}
       <div className="grid gap-4 sm:grid-cols-3 mb-8 fade-up stagger-1">
-        <div className="stat-card metric-clinics">
-          <p className="text-xs font-black uppercase tracking-widest text-white/60 mb-2">Doctors</p>
-          <p className="text-4xl font-black">{doctors.length}</p>
+        <div className="frost-card rounded-2xl p-6 border border-slate-200">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Doctors</p>
+          <p className="text-4xl font-bold text-slate-800">{doctors.length}</p>
         </div>
-        <div className="stat-card metric-appointments">
-          <p className="text-xs font-black uppercase tracking-widest text-white/60 mb-2">Active Patients</p>
-          <p className="text-4xl font-black">{patients.length}</p>
+        <div className="frost-card rounded-2xl p-6 border border-slate-200">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Active Patients</p>
+          <p className="text-4xl font-bold text-slate-800">{patients.length}</p>
         </div>
-        <div className="stat-card metric-users">
-          <p className="text-xs font-black uppercase tracking-widest text-white/60 mb-2">Clinic ID</p>
-          <p className="text-2xl font-black">#{clinic.id}</p>
+        <div className="frost-card rounded-2xl p-6 border border-slate-200">
+          <p className="text-xs font-semibold uppercase tracking-widest text-slate-500 mb-2">Clinic ID</p>
+          <p className="text-2xl font-bold text-slate-800">#{clinic.id}</p>
         </div>
       </div>
 
       {!clinic.approved && (
         <div className="alert-warning mb-6 flex items-start gap-3">
-          <span className="text-xl">⚠️</span>
           <div>
             <p className="font-bold">Clinic Under Review</p>
             <p className="text-sm mt-0.5">Your clinic is private until an admin verifies your details. Patients won't see you in search results yet.</p>
@@ -158,9 +156,9 @@ function ClinicWorkspace() {
           <div className="grid gap-6 lg:grid-cols-2">
             {/* Recent Patients */}
             <div className="frost-card rounded-2xl p-6">
-              <h2 className="font-black text-slate-900 mb-4">Recent Patient Bookings</h2>
+              <h2 className="font-bold text-slate-900 mb-4">Recent Patient Bookings</h2>
               <div className="alert-info mb-4 text-xs">
-                🔒 Only name & phone are shown permanently. Full medical history appears only during active appointments.
+                Only name & phone are shown permanently. Full medical history appears only during active appointments.
               </div>
               <div className="space-y-3">
                 {patients.slice(0, 5).map((p) => (
@@ -190,7 +188,7 @@ function ClinicWorkspace() {
 
             {/* Quick Doctor Summary */}
             <div className="frost-card rounded-2xl p-6">
-              <h2 className="font-black text-slate-900 mb-4">Doctor Status</h2>
+              <h2 className="font-bold text-slate-900 mb-4">Doctor Status</h2>
               <div className="space-y-3">
                 {doctors.map((doc) => (
                   <div key={doc.doctorUserId} className="flex items-center justify-between rounded-xl border border-slate-100 bg-white p-3">
@@ -219,7 +217,7 @@ function ClinicWorkspace() {
           {/* Upcoming Appointments Table */}
           {appointments && appointments.length > 0 && (
             <div className="frost-card rounded-2xl p-6 mt-6">
-              <h2 className="font-black text-slate-900 mb-4">Upcoming Appointments</h2>
+              <h2 className="font-bold text-slate-900 mb-4">Upcoming Appointments</h2>
               <div className="space-y-3">
                 {appointments.map((appt) => {
                   const doc = doctors.find(d => d.doctorUserId === appt.doctorUserId);
@@ -227,7 +225,7 @@ function ClinicWorkspace() {
                   return (
                     <div key={appt.appointmentId || appt.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-100 bg-white p-4">
                       <div className="flex items-center gap-3">
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xs font-black text-teal-600">
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-xs font-bold text-teal-600">
                           {appt.tokenNumber || "—"}
                         </div>
                         <div>
@@ -267,11 +265,11 @@ function ClinicWorkspace() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div className="flex items-center gap-3">
-                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 font-black text-xl">
+                      <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 font-bold text-xl">
                         {(doc.doctorName || "D").charAt(0)}
                       </div>
                       <div>
-                        <p className="font-black text-slate-900">{doc.doctorName}</p>
+                        <p className="font-bold text-slate-900">{doc.doctorName}</p>
                         <span className="spec-tag-light mt-1">{doc.specialization}</span>
                       </div>
                     </div>
@@ -280,10 +278,10 @@ function ClinicWorkspace() {
                     </span>
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2 text-xs text-slate-500">
-                    <span>🚪 Room: {doc.roomId || "—"}</span>
-                    <span>⭐ Rating: {doc.averageRating || "N/A"}</span>
-                    <span>👥 Last patient: {doc.lastPatientName || "None"}</span>
-                    <span>📅 Next apt: {doc.nextAppointmentTime ? formatDateTime(doc.nextAppointmentTime) : "None"}</span>
+                    <span>Room: {doc.roomId || "—"}</span>
+                    <span>Rating: {doc.averageRating || "N/A"}</span>
+                    <span>Last patient: {doc.lastPatientName || "None"}</span>
+                    <span>Next apt: {doc.nextAppointmentTime ? formatDateTime(doc.nextAppointmentTime) : "None"}</span>
                   </div>
                 </div>
               ))}
@@ -299,7 +297,7 @@ function ClinicWorkspace() {
           <div>
             {selectedDoctor ? (
               <div className="frost-card rounded-2xl p-6 sticky top-24">
-                <h3 className="font-black text-slate-900 mb-4">Appointments for Dr. {selectedDoctor.doctorName}</h3>
+                <h3 className="font-bold text-slate-900 mb-4">Appointments for Dr. {selectedDoctor.doctorName}</h3>
                 <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-2">
                   {allAppointments.filter(a => a.doctorUserId === selectedDoctor.doctorUserId).map((appt) => {
                     const pat = patients.find(p => p.patientUserId === appt.patientUserId);
@@ -322,7 +320,6 @@ function ClinicWorkspace() {
               </div>
             ) : (
               <div className="frost-card rounded-2xl p-8 text-center mt-12">
-                <div className="text-4xl mb-3">🩺</div>
                 <p className="font-bold text-slate-600">Select a doctor</p>
                 <p className="text-sm text-slate-400 mt-1">Click on a doctor to view all their appointments in this clinic.</p>
               </div>
@@ -337,7 +334,7 @@ function ClinicWorkspace() {
           <div>
             <h2 className="section-title text-2xl mb-4">Booked Patients</h2>
             <div className="alert-info mb-4 text-sm">
-              🔒 <strong>Privacy Policy:</strong> Medical history is visible ONLY during an active appointment. After the appointment ends, only name and phone number remain visible.
+              <strong>Privacy Policy:</strong> Only visits and prescriptions from your clinic are visible. Patient's personal medical history and visits to other clinics remain private.
             </div>
             <div className="space-y-3">
               {patients.map((p) => (
@@ -348,7 +345,7 @@ function ClinicWorkspace() {
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <p className="font-black text-slate-900">{p.patientName}</p>
+                      <p className="font-bold text-slate-900">{p.patientName}</p>
                       <p className="text-xs text-slate-500 mt-0.5">{p.phoneNumber || "Phone on file"}</p>
                     </div>
                     <div className="text-right">
@@ -356,9 +353,9 @@ function ClinicWorkspace() {
                     </div>
                   </div>
                   <div className="mt-3 text-xs text-slate-500 space-y-1">
-                    {p.nextAppointmentTime && <p>🗓 Next: {formatDateTime(p.nextAppointmentTime)}</p>}
-                    {p.lastVisitTime && <p>📅 Last visit: {formatDateTime(p.lastVisitTime)}</p>}
-                    {p.lastDoctorName && <p>👨‍⚕️ Last doctor: {p.lastDoctorName}</p>}
+                    {p.nextAppointmentTime && <p>Next: {formatDateTime(p.nextAppointmentTime)}</p>}
+                    {p.lastVisitTime && <p>Last visit: {formatDateTime(p.lastVisitTime)}</p>}
+                    {p.lastDoctorName && <p>Last doctor: {p.lastDoctorName}</p>}
                   </div>
                 </div>
               ))}
@@ -373,7 +370,7 @@ function ClinicWorkspace() {
             {selectedPatient ? (
               <div className="frost-card rounded-2xl p-6 sticky top-24 max-h-[85vh] overflow-y-auto">
                 <div className="mb-6 border-b border-slate-100 pb-4">
-                  <h3 className="font-black text-slate-900 mb-2">
+                  <h3 className="font-bold text-slate-900 mb-2">
                     Clinic History: {selectedPatient.patientName}
                   </h3>
                   <div className="space-y-3">
@@ -406,7 +403,7 @@ function ClinicWorkspace() {
                   </div>
                 </div>
 
-                <h3 className="font-black text-slate-900 mb-2">Add Clinical Notes</h3>
+                <h3 className="font-bold text-slate-900 mb-2">Add Clinical Notes</h3>
                 <p className="text-xs text-slate-500 mb-4">
                   These notes are for clinic records only. They won't affect the patient's personal medical passport.
                 </p>
@@ -439,7 +436,6 @@ function ClinicWorkspace() {
               </div>
             ) : (
               <div className="frost-card rounded-2xl p-8 text-center mt-12">
-                <div className="text-4xl mb-3">🧑‍⚕️</div>
                 <p className="font-bold text-slate-600">Select a patient</p>
                 <p className="text-sm text-slate-400 mt-1">Click on a patient to view their clinic history or add notes.</p>
               </div>

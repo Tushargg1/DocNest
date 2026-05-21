@@ -1,5 +1,6 @@
 package com.doctpjt.clinicapp.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
@@ -31,6 +32,10 @@ public class Appointment {
     private Long clinicId;
 
     private String tokenNumber;
+
+    // Unique short code for QR check-in (6 chars)
+    @Column(length = 12)
+    private String checkInCode;
 
     private LocalDateTime startTime;
 

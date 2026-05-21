@@ -18,12 +18,18 @@ function TopNav() {
     ADMIN: "🔐",
   };
 
+  // Logo links to role-appropriate home
+  const homeLink = !session ? "/" :
+    session.role === "DOCTOR" ? "/doctor/workspace" :
+    session.role === "CLINIC" ? "/clinic/workspace" :
+    session.role === "ADMIN" ? "/admin" : "/";
+
   return (
     <header className="sticky top-3 z-50 px-3">
       <div className="mx-auto flex max-w-6xl items-center justify-between topnav-pill rounded-2xl px-3 py-2.5">
         {/* Logo */}
         <Link
-          to="/"
+          to={homeLink}
           className="flex items-center gap-2 text-lg font-black tracking-tight text-slate-900 transition-opacity hover:opacity-80"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-xl bg-gradient-to-br from-teal-500 to-cyan-400 shadow-sm">
@@ -36,16 +42,26 @@ function TopNav() {
 
         {/* Desktop Nav */}
         <nav className="hidden md:flex items-center gap-1 text-sm">
-          <NavLink to="/nearby" className={navClass}>
-            🏥 Find Clinics
-          </NavLink>
-          <NavLink to="/about" className={navClass}>
-            About
-          </NavLink>
+          {/* Patient-facing discovery links — hidden for professional roles */}
+          {(!session || session.role === "PATIENT") && (
+            <NavLink to="/nearby" className={navClass}>
+              🏥 Find Clinics
+            </NavLink>
+          )}
+          {(!session || session.role === "PATIENT") && (
+            <NavLink to="/about" className={navClass}>
+              About
+            </NavLink>
+          )}
 
           {session?.role === "DOCTOR" && (
             <NavLink to="/doctor/workspace" className={navClass}>
-              🩺 Doctor Panel
+              🩺 My Schedule
+            </NavLink>
+          )}
+          {session?.role === "DOCTOR" && (
+            <NavLink to="/about" className={navClass}>
+              ℹ️ About
             </NavLink>
           )}
           {session?.role === "PATIENT" && (
@@ -58,9 +74,19 @@ function TopNav() {
               🤖 Symptoms
             </NavLink>
           )}
+          {session?.role === "PATIENT" && (
+            <NavLink to="/intake" className={navClass}>
+              📋 Health Profile
+            </NavLink>
+          )}
           {session?.role === "CLINIC" && (
             <NavLink to="/clinic/workspace" className={navClass}>
-              🏥 Clinic Panel
+              📊 Dashboard
+            </NavLink>
+          )}
+          {session?.role === "CLINIC" && (
+            <NavLink to="/profile" className={navClass}>
+              ⚙️ Settings
             </NavLink>
           )}
           {session?.role === "ADMIN" && (
@@ -68,7 +94,7 @@ function TopNav() {
               🔐 Admin
             </NavLink>
           )}
-          {session && (
+          {(session?.role === "PATIENT" || session?.role === "ADMIN") && (
             <NavLink to="/profile" className={navClass}>
               👤 Profile
             </NavLink>
@@ -115,24 +141,37 @@ function TopNav() {
       {menuOpen && (
         <div className="mx-auto mt-2 max-w-6xl frost-card rounded-2xl p-4 fade-up">
           <div className="flex flex-col gap-1">
-            <NavLink to="/nearby" className={navClass} onClick={() => setMenuOpen(false)}>🏥 Find Clinics</NavLink>
-            <NavLink to="/about" className={navClass} onClick={() => setMenuOpen(false)}>About</NavLink>
+            {(!session || session.role === "PATIENT") && (
+              <NavLink to="/nearby" className={navClass} onClick={() => setMenuOpen(false)}>🏥 Find Clinics</NavLink>
+            )}
+            {(!session || session.role === "PATIENT") && (
+              <NavLink to="/about" className={navClass} onClick={() => setMenuOpen(false)}>About</NavLink>
+            )}
             {session?.role === "PATIENT" && (
               <NavLink to="/patient/visits" className={navClass} onClick={() => setMenuOpen(false)}>📅 Appointments</NavLink>
             )}
             {session?.role === "PATIENT" && (
               <NavLink to="/symptoms" className={navClass} onClick={() => setMenuOpen(false)}>🤖 Symptoms</NavLink>
             )}
+            {session?.role === "PATIENT" && (
+              <NavLink to="/intake" className={navClass} onClick={() => setMenuOpen(false)}>📋 Health Profile</NavLink>
+            )}
             {session?.role === "CLINIC" && (
-              <NavLink to="/clinic/workspace" className={navClass} onClick={() => setMenuOpen(false)}>🏥 Clinic Panel</NavLink>
+              <NavLink to="/clinic/workspace" className={navClass} onClick={() => setMenuOpen(false)}>📊 Dashboard</NavLink>
+            )}
+            {session?.role === "CLINIC" && (
+              <NavLink to="/profile" className={navClass} onClick={() => setMenuOpen(false)}>⚙️ Settings</NavLink>
             )}
             {session?.role === "DOCTOR" && (
-              <NavLink to="/doctor/workspace" className={navClass} onClick={() => setMenuOpen(false)}>🩺 Doctor Panel</NavLink>
+              <NavLink to="/doctor/workspace" className={navClass} onClick={() => setMenuOpen(false)}>🩺 My Schedule</NavLink>
+            )}
+            {session?.role === "DOCTOR" && (
+              <NavLink to="/about" className={navClass} onClick={() => setMenuOpen(false)}>ℹ️ About</NavLink>
             )}
             {session?.role === "ADMIN" && (
               <NavLink to="/admin" className={navClass} onClick={() => setMenuOpen(false)}>🔐 Admin</NavLink>
             )}
-            {session && (
+            {(session?.role === "PATIENT" || session?.role === "ADMIN") && (
               <NavLink to="/profile" className={navClass} onClick={() => setMenuOpen(false)}>👤 Profile</NavLink>
             )}
             <div className="divider" />

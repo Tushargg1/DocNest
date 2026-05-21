@@ -318,7 +318,7 @@ public class ClinicService {
             .sorted(Comparator.comparing(Appointment::getStartTime))
             .map(a -> new com.doctpjt.clinicapp.dto.AppointmentDtos.AppointmentResponse(
                 a.getId(), a.getDoctorUserId(), a.getPatientUserId(), a.getClinicId(),
-                a.getTokenNumber(), a.getStartTime(), a.getEndTime(), a.getStatus() != null ? a.getStatus().name() : "PENDING",
+                a.getTokenNumber(), a.getCheckInCode(), a.getStartTime(), a.getEndTime(), a.getStatus() != null ? a.getStatus().name() : "PENDING",
                 a.isReviewed(), a.getAttendedConfirmed()
             ))
             .toList();
@@ -326,7 +326,7 @@ public class ClinicService {
         List<com.doctpjt.clinicapp.dto.AppointmentDtos.AppointmentResponse> allAppointments = appointments.stream()
             .map(a -> new com.doctpjt.clinicapp.dto.AppointmentDtos.AppointmentResponse(
                 a.getId(), a.getDoctorUserId(), a.getPatientUserId(), a.getClinicId(),
-                a.getTokenNumber(), a.getStartTime(), a.getEndTime(), a.getStatus() != null ? a.getStatus().name() : "PENDING",
+                a.getTokenNumber(), a.getCheckInCode(), a.getStartTime(), a.getEndTime(), a.getStatus() != null ? a.getStatus().name() : "PENDING",
                 a.isReviewed(), a.getAttendedConfirmed()
             ))
             .toList();

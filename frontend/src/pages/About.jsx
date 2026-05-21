@@ -1,13 +1,20 @@
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
+import { useAuth } from "../context/AuthContext";
 
 function About() {
+  const { session } = useAuth();
+  const role = session?.role;
+
+  // Admin doesn't need About page
+  if (role === "ADMIN") return <Navigate to="/admin" replace />;
+
   return (
     <section className="shell py-10 fade-up">
       <div className="frost-card overflow-hidden rounded-[2.5rem] p-8 md:p-12 lg:p-16">
         <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-center">
           <div>
             <span className="inline-block rounded-full bg-cyan-100/70 px-4 py-1 text-sm font-semibold text-cyan-900">
-              About Us
+              About DocNest
             </span>
             <h1 className="mt-6 text-4xl font-black tracking-tight text-slate-900 md:text-6xl">
               We make clinic care feel organized, fast, and human.
@@ -18,13 +25,28 @@ function About() {
               simple from the first search to the final visit.
             </p>
 
+            {/* Role-specific action buttons */}
             <div className="mt-8 flex flex-wrap gap-4">
-              <Link to="/nearby" className="brand-btn px-6 py-3 text-sm">
-                Find Doctors
-              </Link>
-              <Link to="/login" className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900">
-                Get Started
-              </Link>
+              {!session && (
+                <>
+                  <Link to="/nearby" className="brand-btn px-6 py-3 text-sm">Find Doctors</Link>
+                  <Link to="/login" className="rounded-xl border border-slate-300 bg-white px-6 py-3 text-sm font-semibold text-slate-700 transition hover:border-slate-400 hover:text-slate-900">
+                    Get Started
+                  </Link>
+                </>
+              )}
+              {role === "PATIENT" && (
+                <>
+                  <Link to="/nearby" className="brand-btn px-6 py-3 text-sm">🏥 Find Doctors</Link>
+                  <Link to="/patient/visits" className="brand-btn-outline px-6 py-3 text-sm">📅 My Appointments</Link>
+                </>
+              )}
+              {role === "DOCTOR" && (
+                <Link to="/doctor/workspace" className="brand-btn px-6 py-3 text-sm">🩺 Go to Workspace</Link>
+              )}
+              {role === "CLINIC" && (
+                <Link to="/clinic/workspace" className="brand-btn px-6 py-3 text-sm">📊 Go to Workspace</Link>
+              )}
             </div>
           </div>
 
@@ -53,8 +75,8 @@ function About() {
                   <p className="mt-2 text-sm leading-6 text-slate-600">Manage availability, profiles, and patient records.</p>
                 </div>
                 <div>
-                  <h2 className="font-black text-slate-900">Admins</h2>
-                  <p className="mt-2 text-sm leading-6 text-slate-600">Keep the platform clean, visible, and reliable.</p>
+                  <h2 className="font-black text-slate-900">Clinics</h2>
+                  <p className="mt-2 text-sm leading-6 text-slate-600">Register staff, manage bookings, and grow your practice.</p>
                 </div>
               </div>
             </div>

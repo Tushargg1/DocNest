@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 function LoginPatient() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ identifier: "", password: "" });
   const [error, setError] = useState("");
 
   const handleSubmit = async (e) => {
@@ -35,12 +35,12 @@ function LoginPatient() {
 
         <form onSubmit={handleSubmit} className="frost-card mt-10 space-y-5 rounded-[2.5rem] p-10 fade-up stagger-2 shadow-2xl">
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Email Address</label>
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Email or Phone</label>
             <input
-              type="email"
-              placeholder="e.g. alex@example.com"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              type="text"
+              placeholder="e.g. patient@test.com or 9100000001"
+              value={form.identifier}
+              onChange={(e) => setForm({ ...form, identifier: e.target.value })}
               className="field mt-2"
               required
             />
@@ -68,7 +68,21 @@ function LoginPatient() {
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-slate-500 fade-up stagger-3">
+        {/* ── DEV ONLY: quick-login buttons ── */}
+        <div className="mt-8 fade-up stagger-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-5">
+          <p className="mb-3 text-center text-[11px] font-black uppercase tracking-widest text-amber-600">
+            🛠 Dev Quick Login
+          </p>
+          <button
+            type="button"
+            onClick={() => setForm({ identifier: "patient@test.com", password: "password123" })}
+            className="w-full rounded-xl border border-amber-200 bg-white py-2.5 text-sm font-bold text-slate-700 hover:bg-amber-100 transition"
+          >
+            Patient — patient@test.com
+          </button>
+        </div>
+
+        <p className="mt-6 text-center text-sm text-slate-500 fade-up stagger-3">
           New to DocNest? <Link to="/register" className="font-bold text-teal-600 hover:text-teal-700 transition">Create your account</Link>
         </p>
       </div>

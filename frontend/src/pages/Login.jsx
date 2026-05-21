@@ -119,22 +119,47 @@ function Login() {
               Apply for clinic partnership
             </Link>
           </div>
+
+          {/* ── DEV ONLY: quick-login ── */}
+          <div className="rounded-xl border border-dashed border-slate-300 bg-slate-50 p-4">
+            <p className="mb-2.5 text-center text-[10px] font-semibold uppercase tracking-widest text-slate-500">
+              Development Login
+            </p>
+            <div className="grid grid-cols-2 gap-2">
+              {[
+                { label: "Patient",       id: "9100000001" },
+                { label: "Dr. Priya",     id: "9100000010" },
+                { label: "Dr. Arjun",     id: "9100000011" },
+                { label: "Clinic",        id: "9100000003" },
+                { label: "Admin",         id: "9100000000" },
+              ].map(({ label, id }) => (
+                <button
+                  key={id}
+                  type="button"
+                  onClick={() => setForm({ identifier: id, password: "password123" })}
+                  className="rounded-lg border border-slate-200 bg-white py-2 text-xs font-medium text-slate-700 hover:bg-slate-100 transition"
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <p className="mt-2 text-center text-[10px] text-slate-400">Fills the form — still click Sign In</p>
+          </div>
         </form>
 
         {/* Role info */}
         <div className="mt-6 frost-card rounded-2xl p-5 fade-up stagger-2">
-          <p className="text-[10px] font-black uppercase tracking-widest text-slate-400 mb-3">Who can log in?</p>
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-slate-400 mb-3">Who can log in?</p>
           <div className="grid grid-cols-2 gap-2">
             {[
-              { icon: "🧑‍⚕️", role: "Patient", desc: "Book slots & view history" },
-              { icon: "🏥", role: "Clinic", desc: "Manage doctors & patients" },
-              { icon: "👨‍⚕️", role: "Doctor", desc: "View schedule & write Rx" },
-              { icon: "🔐", role: "Admin", desc: "Approve & oversee all" },
+              { role: "Patient", desc: "Book slots & view history" },
+              { role: "Clinic", desc: "Manage doctors & patients" },
+              { role: "Doctor", desc: "View schedule & write Rx" },
+              { role: "Admin", desc: "Approve & oversee all" },
             ].map((r) => (
               <div key={r.role} className="flex items-center gap-2 p-2 rounded-xl bg-slate-50 border border-slate-100">
-                <span className="text-xl">{r.icon}</span>
                 <div>
-                  <p className="text-xs font-bold text-slate-700">{r.role}</p>
+                  <p className="text-xs font-semibold text-slate-700">{r.role}</p>
                   <p className="text-[10px] text-slate-400">{r.desc}</p>
                 </div>
               </div>

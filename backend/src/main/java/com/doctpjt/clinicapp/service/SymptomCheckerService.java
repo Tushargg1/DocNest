@@ -1,100 +1,154 @@
 package com.doctpjt.clinicapp.service;
 
+import com.doctpjt.clinicapp.entity.PatientProfile;
+import com.doctpjt.clinicapp.repository.PatientProfileRepository;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
-import org.springframework.ai.chat.model.ChatModel;
-import org.springframework.ai.chat.model.ChatResponse;
-import org.springframework.ai.chat.prompt.Prompt;
-import org.springframework.beans.factory.ObjectProvider;
 import org.springframework.stereotype.Service;
 
 @Service
 public class SymptomCheckerService {
 
-    private final ObjectProvider<ChatModel> chatModelProvider;
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+    private final GroqAIService groqAI;
+    private final PatientProfileRepository patientProfileRepository;
 
-    public SymptomCheckerService(ObjectProvider<ChatModel> chatModelProvider) {
-        this.chatModelProvider = chatModelProvider;
+    public SymptomCheckerService(GroqAIService groqAI, PatientProfileRepository patientProfileRepository) {
+        this.groqAI = groqAI;
+        this.patientProfileRepository = patientProfileRepository;
     }
 
-    public Map<String, Object> checkSymptoms(String symptoms, String age, String gender) {
+    public Map<String, Object> checkSymptoms(Long patientUserId, String symptoms) {
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("symptoms", symptoms);
         result.put("disclaimer", "This is not a medical diagnosis. Please consult a qualified doctor for proper treatment.");
 
-        String promptText = String.format(
-            "You are a medical triage assistant. A %s %s patient reports these symptoms: %s. " +
-            "Provide a brief response in this exact format:\n" +
-            "POSSIBLE CONDITIONS: (list 2-3 most likely conditions)\n" +
-            "SEVERITY: (low/medium/high)\n" +
-            "RECOMMENDATION: (one-line advice on urgency and what specialist to see)\n" +
-            "HOME CARE: (1-2 simple things they can do immediately)\n" +
-            "Do NOT provide a diagnosis. Keep it concise.",
-            age != null ? age + " year old" : "adult",
-            gender != null ? gender : "patient",
-            symptoms
-        );
+        // Fetch patient profile for personalized context
+        PatientProfile profile = patientUserId != null
+            ? patientProfileRepository.findByUserId(patientUserId).orElse(null)
+            : null;
 
-        ChatModel chatModel = chatModelProvider.getIfAvailable();
-        if (chatModel != null) {
-            try {
-                ChatResponse response = chatModel.call(new Prompt(promptText));
-                String content = response.getResult().getOutput().getText();
-                if (content != null && !content.isBlank()) {
-                    result.put("analysis", content.trim());
-                    result.put("source", "ai");
-                    return result;
-                }
-            } catch (Exception ignored) {
-                // Fall through to rule-based fallback
+        // Build patient context summary
+        Map<String, Object> patientContext = buildPatientContext(profile);
+        result.put("patientContext", patientContext);
+
+        // Try AI first (Groq 70B with full medical context)
+        if (groqAI.isConfigured()) {
+            String aiAnalysis = generateAIAnalysis(symptoms, patientContext);
+            if (aiAnalysis != null && !aiAnalysis.isBlank()) {
+                result.put("analysis", aiAnalysis);
+                result.put("source", "ai");
+                return result;
             }
         }
 
-        // Fallback: Simple rule-based triage
-        result.put("analysis", generateFallbackAnalysis(symptoms));
+        // Fallback rule-based
+        result.put("analysis", generateFallbackAnalysis(symptoms, patientContext));
         result.put("source", "rules");
         return result;
     }
 
-    private String generateFallbackAnalysis(String symptoms) {
+    private Map<String, Object> buildPatientContext(PatientProfile profile) {
+        Map<String, Object> context = new LinkedHashMap<>();
+        if (profile == null) return context;
+
+        if (profile.getAge() != null) context.put("age", profile.getAge());
+        if (profile.getGender() != null) context.put("gender", profile.getGender());
+        if (profile.getBloodGroup() != null) context.put("bloodGroup", profile.getBloodGroup());
+        if (profile.getHeight() != null) context.put("height", profile.getHeight() + " cm");
+        if (profile.getWeight() != null) context.put("weight", profile.getWeight() + " kg");
+        if (profile.getAllergies() != null && !profile.getAllergies().isBlank())
+            context.put("knownAllergies", profile.getAllergies());
+        if (profile.getCurrentMedications() != null && !profile.getCurrentMedications().isBlank())
+            context.put("currentMedications", profile.getCurrentMedications());
+
+        // Parse structured medical history
+        String history = profile.getMedicalHistory();
+        if (history != null && !history.isBlank()) {
+            try {
+                if (history.trim().startsWith("[")) {
+                    Object parsed = MAPPER.readValue(history, Object.class);
+                    context.put("medicalHistory", parsed);
+                } else {
+                    context.put("medicalHistory", history);
+                }
+            } catch (Exception ignored) {
+                context.put("medicalHistory", history);
+            }
+        }
+
+        return context;
+    }
+
+    private String generateAIAnalysis(String symptoms, Map<String, Object> patientContext) {
+        String systemPrompt = "You are an experienced medical triage AI for Indian patients. "
+            + "You will be given the patient's full medical context (age, gender, existing conditions, allergies, current medications, past medical history) AND their current symptoms. "
+            + "Your job: Analyze the symptoms IN THE CONTEXT of the patient's history. Look for connections — for example: "
+            + "if a diabetic patient reports tingling, mention diabetic neuropathy; if BP patient reports headache, mention hypertension link; "
+            + "if patient is on certain meds, consider drug side effects. "
+            + "Format your response EXACTLY as:\n"
+            + "POSSIBLE CONDITIONS: <2-3 most likely conditions, considering patient's history>\n"
+            + "WHY (BASED ON YOUR HISTORY): <brief explanation linking symptoms to known conditions/meds>\n"
+            + "SEVERITY: <Low/Medium/High>\n"
+            + "RECOMMENDATION: <which specialist to see and how urgent>\n"
+            + "HOME CARE: <2-3 simple things they can do now>\n"
+            + "WARNINGS: <any drug interactions or red flags based on their history>\n"
+            + "Keep language simple. Do NOT diagnose definitively. Be cautious.";
+
+        Map<String, Object> input = new LinkedHashMap<>();
+        input.put("patient_context", patientContext);
+        input.put("current_symptoms", symptoms);
+
+        try {
+            String userPrompt = MAPPER.writeValueAsString(input);
+            return groqAI.call70B(systemPrompt, userPrompt);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    private String generateFallbackAnalysis(String symptoms, Map<String, Object> patientContext) {
         String lower = symptoms.toLowerCase();
         StringBuilder analysis = new StringBuilder();
 
-        // Simple keyword matching
+        // Check for emergency keywords
         if (lower.contains("chest pain") || lower.contains("breathing difficulty") || lower.contains("unconscious")) {
             analysis.append("SEVERITY: HIGH\n");
-            analysis.append("RECOMMENDATION: Please visit the nearest emergency room immediately or call emergency services.\n");
-        } else if (lower.contains("fever") && (lower.contains("cough") || lower.contains("cold"))) {
+            analysis.append("RECOMMENDATION: Please go to the nearest emergency room immediately.\n");
+            return analysis.toString();
+        }
+
+        // Use patient context for smarter fallback
+        Object existingConditions = patientContext.get("medicalHistory");
+        boolean isDiabetic = existingConditions != null && existingConditions.toString().toLowerCase().contains("diabet");
+        boolean hasBP = existingConditions != null && existingConditions.toString().toLowerCase().contains("bp");
+
+        if (lower.contains("fever") && lower.contains("cough")) {
             analysis.append("POSSIBLE CONDITIONS: Common cold, Flu, Upper respiratory infection\n");
+            if (isDiabetic) analysis.append("WHY: As a diabetic patient, infections may take longer to resolve.\n");
             analysis.append("SEVERITY: Low to Medium\n");
             analysis.append("RECOMMENDATION: Visit a General Physician if symptoms persist beyond 3 days.\n");
-            analysis.append("HOME CARE: Rest, stay hydrated, take paracetamol for fever if above 100°F.");
+            analysis.append("HOME CARE: Rest, stay hydrated, paracetamol for fever above 100°F.");
         } else if (lower.contains("headache")) {
             analysis.append("POSSIBLE CONDITIONS: Tension headache, Migraine, Dehydration\n");
-            analysis.append("SEVERITY: Low\n");
-            analysis.append("RECOMMENDATION: Visit a General Physician if headaches are recurring or severe.\n");
-            analysis.append("HOME CARE: Rest in a quiet dark room, stay hydrated, apply cold compress.");
-        } else if (lower.contains("stomach") || lower.contains("nausea") || lower.contains("vomiting")) {
-            analysis.append("POSSIBLE CONDITIONS: Gastritis, Food poisoning, Indigestion\n");
-            analysis.append("SEVERITY: Low to Medium\n");
-            analysis.append("RECOMMENDATION: Visit a Gastroenterologist if symptoms persist beyond 24 hours.\n");
-            analysis.append("HOME CARE: Avoid spicy food, take ORS, eat light bland food.");
-        } else if (lower.contains("skin") || lower.contains("rash") || lower.contains("itching")) {
-            analysis.append("POSSIBLE CONDITIONS: Allergic reaction, Contact dermatitis, Eczema\n");
-            analysis.append("SEVERITY: Low\n");
-            analysis.append("RECOMMENDATION: Visit a Dermatologist if rash spreads or doesn't improve in 2-3 days.\n");
-            analysis.append("HOME CARE: Avoid scratching, use calamine lotion, take antihistamine if allergic.");
-        } else if (lower.contains("joint") || lower.contains("back pain") || lower.contains("muscle")) {
-            analysis.append("POSSIBLE CONDITIONS: Muscle strain, Joint inflammation, Posture-related pain\n");
-            analysis.append("SEVERITY: Low\n");
-            analysis.append("RECOMMENDATION: Visit an Orthopedic specialist if pain persists beyond a week.\n");
-            analysis.append("HOME CARE: Apply ice/heat, gentle stretching, avoid heavy lifting.");
+            if (hasBP) analysis.append("WHY: With your high BP history, headaches need closer attention.\n");
+            analysis.append("SEVERITY: ").append(hasBP ? "Medium" : "Low").append("\n");
+            analysis.append("RECOMMENDATION: ").append(hasBP ? "Check your BP and visit doctor if elevated." : "Visit GP if recurring.").append("\n");
+            analysis.append("HOME CARE: Rest in dark room, hydrate, cold compress.");
+        } else if (lower.contains("tingling") || lower.contains("numbness")) {
+            analysis.append("POSSIBLE CONDITIONS: Nerve issue, Vitamin B12 deficiency");
+            if (isDiabetic) analysis.append(", Diabetic neuropathy");
+            analysis.append("\n");
+            if (isDiabetic) analysis.append("WHY: Tingling in diabetics can indicate diabetic neuropathy. Important to check sugar control.\n");
+            analysis.append("SEVERITY: Medium\n");
+            analysis.append("RECOMMENDATION: Visit a ").append(isDiabetic ? "Diabetologist or Neurologist" : "Neurologist").append(".\n");
         } else {
-            analysis.append("POSSIBLE CONDITIONS: Multiple conditions could match these symptoms\n");
+            analysis.append("POSSIBLE CONDITIONS: Multiple possibilities — needs proper examination\n");
             analysis.append("SEVERITY: Requires evaluation\n");
-            analysis.append("RECOMMENDATION: Please visit a General Physician for proper examination.\n");
-            analysis.append("HOME CARE: Rest and stay hydrated until you can see a doctor.");
+            analysis.append("RECOMMENDATION: Visit a General Physician for assessment.\n");
+            analysis.append("HOME CARE: Rest and hydrate.");
         }
 
         return analysis.toString();

@@ -61,8 +61,15 @@ public class AppointmentService {
         List<LocalDateTime> slots = new ArrayList<>();
         LocalDateTime slot = LocalDateTime.of(date, startWork);
         LocalDateTime endDateTime = LocalDateTime.of(date, endWork);
+        // Don't show slots in the past — patients should book at least 15 min in the future
+        LocalDateTime minBookingTime = LocalDateTime.now().plusMinutes(15);
 
         while (slot.plusMinutes(slotDuration).isBefore(endDateTime) || slot.plusMinutes(slotDuration).equals(endDateTime)) {
+            // Skip past slots (only relevant when date == today)
+            if (slot.isBefore(minBookingTime)) {
+                slot = slot.plusMinutes(slotDuration);
+                continue;
+            }
             boolean booked = appointmentRepository.existsByDoctorUserIdAndStartTimeAndStatus(
                 doctorUserId,
                 slot,
@@ -106,6 +113,7 @@ public class AppointmentService {
         appointment.setPatientUserId(request.patientUserId());
         appointment.setClinicId(request.clinicId());
         appointment.setTokenNumber(generateTokenNumber(doctor, request.clinicId(), request.startTime()));
+        appointment.setCheckInCode(generateCheckInCode());
         appointment.setStartTime(request.startTime());
         appointment.setEndTime(request.startTime().plusMinutes(slotDuration));
         appointment.setStatus(AppointmentStatus.BOOKED);
@@ -141,8 +149,12 @@ public class AppointmentService {
             throw new IllegalArgumentException("Appointment already cancelled");
         }
 
-        if (appointment.getStatus() == AppointmentStatus.COMPLETED) {
-            throw new IllegalArgumentException("Completed appointment cannot be cancelled");
+        if (appointment.getStatus() == AppointmentStatus.COMPLETED || appointment.getStatus() == AppointmentStatus.ATTENDED) {
+            throw new IllegalArgumentException("Already attended/completed appointment cannot be cancelled");
+        }
+
+        if (appointment.getStatus() == AppointmentStatus.MISSED) {
+            throw new IllegalArgumentException("Missed appointment cannot be cancelled");
         }
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
@@ -182,6 +194,7 @@ public class AppointmentService {
             appointment.getPatientUserId(),
             appointment.getClinicId(),
             appointment.getTokenNumber(),
+            appointment.getCheckInCode(),
             appointment.getStartTime(),
             appointment.getEndTime(),
             appointment.getStatus().name(),
@@ -217,5 +230,64 @@ public class AppointmentService {
             .orElse(0) + 1;
 
         return String.format("%c%03d", tokenPrefix, next);
+    }
+
+    /**
+     * Generates a 6-character alphanumeric check-in code (excluding ambiguous chars).
+     */
+    private String generateCheckInCode() {
+        String chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+        java.security.SecureRandom random = new java.security.SecureRandom();
+        StringBuilder sb = new StringBuilder(6);
+        for (int i = 0; i < 6; i++) {
+            sb.append(chars.charAt(random.nextInt(chars.length())));
+        }
+        return sb.toString();
+    }
+
+    /**
+     * Mark appointment as ATTENDED via QR code/check-in code.
+     * Either patient (with their own appointment) or doctor (scanning patient's code) can call this.
+     */
+    public AppointmentResponse checkIn(String checkInCode, Long requesterUserId, boolean isDoctor) {
+        Appointment appointment = appointmentRepository.findAll().stream()
+            .filter(a -> checkInCode.equalsIgnoreCase(a.getCheckInCode()))
+            .findFirst()
+            .orElseThrow(() -> new IllegalArgumentException("Invalid check-in code"));
+
+        // Authorization: either the patient themselves OR the doctor for this appointment
+        if (!isDoctor && !appointment.getPatientUserId().equals(requesterUserId)) {
+            throw new IllegalArgumentException("Not authorized to check in this appointment");
+        }
+        if (isDoctor && !appointment.getDoctorUserId().equals(requesterUserId)) {
+            throw new IllegalArgumentException("This appointment is not yours to mark");
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+            throw new IllegalArgumentException("Only booked appointments can be checked in. Current status: " + appointment.getStatus());
+        }
+
+        appointment.setStatus(AppointmentStatus.ATTENDED);
+        appointment.setAttendedConfirmed(true);
+        Appointment saved = appointmentRepository.save(appointment);
+        return toResponse(saved);
+    }
+
+    /**
+     * Auto-mark past BOOKED appointments as MISSED if they are over 4 hours past start time.
+     * Called from scheduled task.
+     */
+    public int autoMarkMissedAppointments() {
+        LocalDateTime cutoff = LocalDateTime.now().minusHours(4);
+        List<Appointment> stale = appointmentRepository.findAll().stream()
+            .filter(a -> a.getStatus() == AppointmentStatus.BOOKED)
+            .filter(a -> a.getStartTime() != null && a.getStartTime().isBefore(cutoff))
+            .toList();
+        for (Appointment a : stale) {
+            a.setStatus(AppointmentStatus.MISSED);
+            a.setAttendedConfirmed(false);
+        }
+        if (!stale.isEmpty()) appointmentRepository.saveAll(stale);
+        return stale.size();
     }
 }

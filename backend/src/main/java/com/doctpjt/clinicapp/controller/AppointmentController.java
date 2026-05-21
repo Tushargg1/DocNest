@@ -70,6 +70,21 @@ public class AppointmentController {
     }
 
     /**
+     * Check-in via QR code or manual code entry.
+     * Body: { "checkInCode": "ABCD12" }
+     * Either patient (their own) or doctor (their patient's) can check in.
+     */
+    @PostMapping("/check-in")
+    @PreAuthorize("hasAnyRole('PATIENT', 'DOCTOR', 'ADMIN')")
+    public AppointmentResponse checkIn(@RequestBody java.util.Map<String, String> body, Authentication authentication) {
+        String code = body.get("checkInCode");
+        if (code == null || code.isBlank()) throw new IllegalArgumentException("Check-in code is required");
+        Long userId = (Long) authentication.getPrincipal();
+        boolean isDoctor = authentication.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_DOCTOR"));
+        return appointmentService.checkIn(code.trim(), userId, isDoctor);
+    }
+
+    /**
      * POST /api/appointments/{id}/review
      * Called by patient after appointment to confirm attendance and rate the doctor.
      * Sets appointment.reviewed = true and saves Rating if attended.

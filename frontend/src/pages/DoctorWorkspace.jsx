@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import QRScanner from "../components/QRScanner";
 
 function DoctorWorkspace() {
   const { session } = useAuth();
@@ -9,6 +10,7 @@ function DoctorWorkspace() {
   const [scheduleDate, setScheduleDate] = useState(new Date().toISOString().slice(0, 10));
   const [selectedPatient, setSelectedPatient] = useState(null);
   const [patientMedical, setPatientMedical] = useState(null);
+  const [showScanner, setShowScanner] = useState(false);
   const [rxForm, setRxForm] = useState({
     diagnosis: "",
     medications: "",
@@ -105,8 +107,8 @@ function DoctorWorkspace() {
   };
 
   const tabs = [
-    { id: "schedule", label: "📅 Today's Schedule" },
-    { id: "patients", label: "👥 My Patients" },
+    { id: "schedule", label: "Today's Schedule" },
+    { id: "patients", label: "My Patients" },
   ];
 
   return (
@@ -118,11 +120,19 @@ function DoctorWorkspace() {
           <h1 className="page-title text-4xl">Doctor Workspace</h1>
           <p className="mt-2 text-slate-500">View your schedule, patient records, and write prescriptions.</p>
         </div>
-        {dashboard && (
-          <div className={`status-badge text-sm px-4 py-2 ${dashboard.approvalStatus === "ACTIVE" ? "status-booked" : "status-pending"}`}>
-            {dashboard.approvalStatus === "ACTIVE" ? "✓ Profile Live" : "⏳ Pending Approval"}
-          </div>
-        )}
+        <div className="flex items-center gap-3 flex-wrap">
+          <button
+            onClick={() => setShowScanner(true)}
+            className="brand-btn px-4 py-2 text-xs flex items-center gap-2"
+          >
+            Scan Patient QR
+          </button>
+          {dashboard && (
+            <div className={`status-badge text-sm px-4 py-2 ${dashboard.approvalStatus === "ACTIVE" ? "status-booked" : "status-pending"}`}>
+              {dashboard.approvalStatus === "ACTIVE" ? "Active" : "Pending Approval"}
+            </div>
+          )}
+        </div>
       </div>
 
       {status && <div className="alert-error mb-6"><p className="font-semibold">{status}</p></div>}
@@ -130,20 +140,20 @@ function DoctorWorkspace() {
       {/* Stat Cards */}
       {dashboard && (
         <div className="grid gap-4 sm:grid-cols-3 mb-8 fade-up stagger-1">
-          <div className="frost-card-dark rounded-2xl p-6">
-            <p className="text-xs font-black uppercase tracking-widest text-teal-400 mb-2">Clinic</p>
-            <p className="text-lg font-bold text-white">{dashboard.clinicName || "Not assigned"}</p>
+          <div className="frost-card rounded-2xl p-6 border border-slate-200">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Clinic</p>
+            <p className="text-lg font-bold text-slate-800">{dashboard.clinicName || "Not assigned"}</p>
           </div>
           <div className="frost-card rounded-2xl p-6 text-center">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Upcoming</p>
-            <p className="text-4xl font-black text-navy" style={{ color: "#0b1437" }}>
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Upcoming</p>
+            <p className="text-4xl font-bold text-slate-800">
               {dashboard.upcomingAppointments?.length || 0}
             </p>
             <p className="text-xs text-slate-500 mt-1">appointments</p>
           </div>
           <div className="frost-card rounded-2xl p-6 text-center">
-            <p className="text-xs font-black uppercase tracking-widest text-slate-400 mb-2">Patients Seen</p>
-            <p className="text-4xl font-black text-teal-600">
+            <p className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-2">Patients Seen</p>
+            <p className="text-4xl font-bold text-teal-600">
               {dashboard.patients?.length || 0}
             </p>
             <p className="text-xs text-slate-500 mt-1">total</p>
@@ -184,37 +194,39 @@ function DoctorWorkspace() {
               </div>
 
               <div className="space-y-3">
-                {appointments.map((appt) => (
+                {appointments.map((appt) => {
+                  const pat = (dashboard?.patients || []).find(p => p.patientUserId === appt.patientUserId);
+                  return (
                   <div
                     key={appt.appointmentId}
                     className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-white p-4 hover:border-teal-200 transition-colors cursor-pointer"
-                    onClick={() => viewPatient(appt)}
+                    onClick={() => viewPatient({ ...appt, patientName: pat?.patientName, phoneNumber: pat?.phoneNumber })}
                   >
                     <div className="flex items-center gap-3">
                       {appt.tokenNumber && (
-                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-black text-teal-300"
+                        <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl text-xs font-bold text-teal-300"
                           style={{ background: "linear-gradient(135deg, #0b1437, #0ea5a5)" }}>
                           {appt.tokenNumber}
                         </div>
                       )}
                       <div>
                         <p className="font-bold text-slate-800">
-                          Patient #{appt.patientUserId}
+                          {pat?.patientName || `Patient #${appt.patientUserId}`}
                         </p>
-                        <p className="text-xs text-slate-500">{formatDateTime(appt.startTime)}</p>
+                        <p className="text-xs text-slate-500">{pat?.phoneNumber ? pat.phoneNumber + " · " : ""}{formatDateTime(appt.startTime)}</p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2">
                       <span className={getStatusClass(appt.status)}>{appt.status}</span>
-                      <button className="btn-ghost px-3 py-1.5 text-xs" onClick={(e) => { e.stopPropagation(); viewPatient(appt); }}>
+                      <button className="btn-ghost px-3 py-1.5 text-xs" onClick={(e) => { e.stopPropagation(); viewPatient({ ...appt, patientName: pat?.patientName, phoneNumber: pat?.phoneNumber }); }}>
                         View & Prescribe →
                       </button>
                     </div>
                   </div>
-                ))}
+                  );
+                })}
                 {appointments.length === 0 && (
                   <div className="text-center py-12">
-                    <div className="text-4xl mb-3">📅</div>
                     <p className="text-slate-500">No appointments for {scheduleDate}</p>
                   </div>
                 )}
@@ -223,19 +235,22 @@ function DoctorWorkspace() {
               {/* All Upcoming Summary */}
               {dashboard?.upcomingAppointments && dashboard.upcomingAppointments.length > 0 && (
                 <div className="mt-8 pt-6 border-t border-slate-100">
-                  <h3 className="font-black text-slate-900 mb-4">All Upcoming Appointments</h3>
+                  <h3 className="font-semibold text-slate-900 mb-4">All Upcoming Appointments</h3>
                   <div className="space-y-2">
-                    {dashboard.upcomingAppointments.slice(0, 5).map(appt => (
+                    {dashboard.upcomingAppointments.slice(0, 5).map(appt => {
+                      const pat = (dashboard?.patients || []).find(p => p.patientUserId === appt.patientUserId);
+                      return (
                       <div key={appt.appointmentId || appt.id} className="flex justify-between items-center bg-slate-50 p-3 rounded-xl border border-slate-100">
                         <div>
-                          <p className="font-bold text-sm">Patient #{appt.patientUserId}</p>
-                          <p className="text-xs text-slate-500">{formatDateTime(appt.startTime)}</p>
+                          <p className="font-bold text-sm">{pat?.patientName || `Patient #${appt.patientUserId}`}</p>
+                          <p className="text-xs text-slate-500">{pat?.phoneNumber ? pat.phoneNumber + " · " : ""}{formatDateTime(appt.startTime)}</p>
                         </div>
-                        <span className="text-xs font-black uppercase text-teal-600 bg-teal-50 px-2 py-1 rounded">
+                        <span className="text-xs font-semibold uppercase text-teal-600 bg-teal-50 px-2 py-1 rounded">
                           Token {appt.tokenNumber || "—"}
                         </span>
                       </div>
-                    ))}
+                      );
+                    })}
                     {dashboard.upcomingAppointments.length > 5 && (
                       <p className="text-xs text-center text-slate-400 mt-2">+{dashboard.upcomingAppointments.length - 5} more upcoming</p>
                     )}
@@ -245,41 +260,63 @@ function DoctorWorkspace() {
             </div>
           )}
 
-          {/* Patients Tab */}
+          {/* Patients Tab — Today's patients only */}
           {activeTab === "patients" && (
             <div className="frost-card rounded-2xl p-6">
               <p className="text-sm text-slate-500 mb-4 alert-info">
-                🔒 Patient medical history is visible only for active appointments. Privacy is enforced by the system.
+                Only today's patients are shown. Medical history is visible only during active appointments. Previous days' records are cleared for privacy.
               </p>
               <div className="space-y-3">
-                {dashboard?.patients?.map((patient) => (
-                  <article key={patient.patientUserId} className="rounded-xl border border-slate-200 bg-white p-4">
-                    <div className="flex flex-wrap items-center justify-between gap-3">
-                      <div>
-                        <p className="font-bold text-slate-900">{patient.patientName}</p>
-                        <p className="text-xs text-slate-500">
-                          {patient.phoneNumber || "Phone hidden"} · {patient.pastVisits || 0} visits
-                        </p>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        {patient.nextAppointmentTime && (
-                          <span className="text-xs text-teal-600 font-semibold bg-teal-50 px-2 py-1 rounded-lg">
-                            Next: {formatDateTime(patient.nextAppointmentTime)}
+                {(() => {
+                  // Use the schedule appointments (already filtered by scheduleDate which defaults to today)
+                  const todayAppts = appointments.filter(a => a.status === "BOOKED" || a.status === "ATTENDED");
+                  
+                  if (todayAppts.length === 0) {
+                    return <p className="text-center py-8 text-slate-400">No patients scheduled for today.</p>;
+                  }
+
+                  return todayAppts.map((appt) => {
+                    const pat = (dashboard?.patients || []).find(p => p.patientUserId === appt.patientUserId);
+                    return (
+                    <article key={appt.appointmentId} className="rounded-xl border border-slate-200 bg-white p-4">
+                      <div className="flex flex-wrap items-center justify-between gap-3">
+                        <div>
+                          <p className="font-bold text-slate-900">{pat?.patientName || `Patient #${appt.patientUserId}`}</p>
+                          <p className="text-xs text-slate-500">{pat?.phoneNumber || "—"}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`status-badge text-[10px] ${appt.status === "BOOKED" ? "status-booked" : "status-completed"}`}>{appt.status}</span>
+                          <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-1 rounded-lg">
+                            {appt.startTime ? new Date(appt.startTime).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" }) : "—"}
                           </span>
-                        )}
+                        </div>
+                      </div>
+                      <div className="mt-3 grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                        <div className="bg-slate-50 rounded-lg p-2">
+                          <span className="text-slate-400 font-bold">Rx:</span>{" "}
+                          <span className="text-slate-700">{pat?.lastDiagnosis || "Not yet prescribed"}</span>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-2">
+                          <span className="text-slate-400 font-bold">Meds:</span>{" "}
+                          <span className="text-slate-700">{pat?.lastMedications || "—"}</span>
+                        </div>
+                        <div className="bg-slate-50 rounded-lg p-2">
+                          <span className="text-slate-400 font-bold">Token:</span>{" "}
+                          <span className="text-slate-700">{appt.tokenNumber || "—"}</span>
+                        </div>
+                      </div>
+                      <div className="mt-2 flex justify-end">
                         <button
-                          onClick={() => viewPatient({ patientUserId: patient.patientUserId, ...patient })}
+                          onClick={() => viewPatient({ ...appt, patientName: pat?.patientName, phoneNumber: pat?.phoneNumber })}
                           className="btn-ghost px-3 py-1.5 text-xs"
                         >
-                          View Details
+                          View & Prescribe →
                         </button>
                       </div>
-                    </div>
-                  </article>
-                ))}
-                {(!dashboard?.patients || dashboard.patients.length === 0) && (
-                  <p className="text-center py-8 text-slate-400">No patient history yet.</p>
-                )}
+                    </article>
+                    );
+                  });
+                })()}
               </div>
             </div>
           )}
@@ -290,45 +327,116 @@ function DoctorWorkspace() {
           {selectedPatient ? (
             <div className="space-y-4">
               {/* Patient Info */}
-              <div className="frost-card-dark rounded-2xl p-6">
-                <p className="section-label text-teal-300 mb-3">Current Patient</p>
+              <div className="frost-card rounded-2xl p-6 border border-slate-200 bg-slate-50">
+                <p className="section-label text-teal-600 mb-3">Current Patient</p>
                 <div className="flex items-center gap-3 mb-4">
-                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-white/10 text-xl font-black text-white">
+                  <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-teal-100 text-xl font-bold text-teal-700">
                     {(selectedPatient.patientName || "P").charAt(0)}
                   </div>
                   <div>
-                    <p className="font-bold text-white">{selectedPatient.patientName || `Patient #${selectedPatient.patientUserId}`}</p>
-                    <p className="text-xs text-white/50">{selectedPatient.phoneNumber || "Phone on file"}</p>
+                    <p className="font-bold text-slate-800">{selectedPatient.patientName || `Patient #${selectedPatient.patientUserId}`}</p>
+                    <p className="text-xs text-slate-500">{selectedPatient.phoneNumber || "Phone on file"}</p>
                   </div>
                 </div>
 
                 {/* Medical History (only during active appointment) */}
                 {patientMedical && !patientMedical.note && (
-                  <div className="space-y-3 border-t border-white/10 pt-4">
-                    <p className="text-xs font-black uppercase tracking-widest text-teal-400">Medical History</p>
+                  <div className="space-y-3 border-t border-slate-200 pt-4">
+                    <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Medical History</p>
                     {patientMedical.allergies && (
-                      <div className="bg-rose-500/20 rounded-xl p-3">
-                        <p className="text-[10px] font-black uppercase text-rose-300 mb-1">⚠️ Allergies</p>
-                        <p className="text-sm text-white">{patientMedical.allergies}</p>
+                      <div className="bg-red-50 border border-red-100 rounded-xl p-3">
+                        <p className="text-[10px] font-semibold uppercase text-red-600 mb-1">Allergies</p>
+                        <p className="text-sm text-red-800">{patientMedical.allergies}</p>
                       </div>
                     )}
-                    {patientMedical.bloodGroup && (
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs text-white/50">Blood Group:</span>
-                        <span className="font-bold text-teal-300">{patientMedical.bloodGroup}</span>
+                    {patientMedical.currentMedications && (
+                      <div className="bg-slate-100 border border-slate-200 rounded-xl p-3">
+                        <p className="text-[10px] font-semibold uppercase text-slate-600 mb-1">Current Medications</p>
+                        <p className="text-sm text-slate-800">{patientMedical.currentMedications}</p>
                       </div>
                     )}
-                    {patientMedical.medicalHistory && (
-                      <div>
-                        <p className="text-xs text-white/50 mb-1">Clinical Notes</p>
-                        <p className="text-sm text-white/80">{patientMedical.medicalHistory}</p>
-                      </div>
-                    )}
+                    <div className="flex items-center gap-4 flex-wrap">
+                      {patientMedical.bloodGroup && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">Blood:</span>
+                          <span className="font-bold text-teal-600">{patientMedical.bloodGroup}</span>
+                        </div>
+                      )}
+                      {patientMedical.age && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">Age:</span>
+                          <span className="font-bold text-slate-800">{patientMedical.age}</span>
+                        </div>
+                      )}
+                      {patientMedical.weight && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-slate-500">Weight:</span>
+                          <span className="font-bold text-slate-800">{patientMedical.weight} kg</span>
+                        </div>
+                      )}
+                    </div>
+                    {/* Structured disease history */}
+                    {patientMedical.medicalHistory && (() => {
+                      const raw = patientMedical.medicalHistory;
+                      let records = [];
+                      try {
+                        const p = raw.trim().startsWith("[") ? JSON.parse(raw) : null;
+                        if (Array.isArray(p)) records = p;
+                      } catch { /* not JSON */ }
+
+                      if (records.length > 0) {
+                        return (
+                          <div>
+                            <p className="text-[10px] font-semibold uppercase text-slate-500 mb-2">Past Conditions ({records.length})</p>
+                            <div className="space-y-2">
+                              {records.map((rec, i) => {
+                                const statusText = (rec.status || "").trim().toLowerCase();
+                                let tagColor = "bg-red-50 border border-red-200 text-red-700";
+                                let tagLabel = "Ongoing";
+                                if (statusText && !statusText.includes("ongoing") && !statusText.includes("still") && !statusText.includes("active")) {
+                                  const dateMatch = statusText.match(/(\d{4})/);
+                                  if (dateMatch && new Date().getFullYear() - parseInt(dateMatch[1]) > 1) {
+                                    tagColor = "bg-slate-50 border border-slate-200 text-slate-600";
+                                    tagLabel = "Resolved";
+                                  } else {
+                                    tagColor = "bg-slate-100 border border-slate-200 text-slate-700";
+                                    tagLabel = "Recent";
+                                  }
+                                }
+                                return (
+                                  <div key={i} className="rounded-lg bg-white border border-slate-200 p-3">
+                                    <div className="flex items-center justify-between mb-1">
+                                      <p className="font-bold text-slate-800 text-sm">{rec.diseaseName || "Unknown"}</p>
+                                      <span className={`text-[9px] font-semibold uppercase px-2 py-0.5 rounded-full ${tagColor}`}>{tagLabel}</span>
+                                    </div>
+                                    <div className="grid grid-cols-2 gap-x-3 gap-y-0.5 text-xs text-slate-600">
+                                      {rec.startedWhen && <p>Detected: {rec.startedWhen}</p>}
+                                      {rec.status && !rec.status.toLowerCase().includes("ongoing") && <p>Ended: {rec.status}</p>}
+                                      {(rec.medications || rec.medicineName) && <p className="col-span-2">Meds: {rec.medications || rec.medicineName}</p>}
+                                      {rec.hospital && <p>Hospital: {rec.hospital}</p>}
+                                      {rec.doctorName && <p>Doctor: {rec.doctorName}</p>}
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        );
+                      }
+
+                      // Fallback: plain text
+                      return (
+                        <div>
+                          <p className="text-xs text-slate-500 mb-1">Clinical Notes</p>
+                          <p className="text-sm text-slate-700">{raw}</p>
+                        </div>
+                      );
+                    })()}
                   </div>
                 )}
 
                 {patientMedical?.note && (
-                  <p className="text-xs text-white/50 mt-3 italic">{patientMedical.note}</p>
+                  <p className="text-xs text-slate-500 mt-3 italic">{patientMedical.note}</p>
                 )}
 
                 <button
@@ -341,8 +449,8 @@ function DoctorWorkspace() {
 
               {/* Prescription Form */}
               <div className="frost-card rounded-2xl p-6">
-                <h3 className="font-black text-slate-900 mb-4 flex items-center gap-2">
-                  <span>📝</span> Write Prescription
+                <h3 className="font-bold text-slate-900 mb-4">
+                  Write Prescription
                 </h3>
                 <form onSubmit={submitPrescription} className="space-y-4">
                   <div>
@@ -390,12 +498,12 @@ function DoctorWorkspace() {
 
                   {rxMsg === "error-no-appt" && (
                     <div className="alert-error">
-                      <p className="font-bold text-sm">⚠️ Select a patient from the schedule (not just the patients tab) to write a prescription. The appointment ID is required.</p>
+                      <p className="font-semibold text-sm">Select a patient from the schedule (not just the patients tab) to write a prescription. The appointment ID is required.</p>
                     </div>
                   )}
                   {rxMsg === "success" && (
                     <div className="alert-success">
-                      <p className="font-bold text-sm">✓ Prescription saved! Patient will receive a reminder if revisit date is set.</p>
+                      <p className="font-semibold text-sm">Prescription saved. Patient will receive a reminder if revisit date is set.</p>
                     </div>
                   )}
                   {rxMsg === "error" && (
@@ -412,13 +520,23 @@ function DoctorWorkspace() {
             </div>
           ) : (
             <div className="frost-card rounded-2xl p-8 text-center">
-              <div className="text-4xl mb-4">👨‍⚕️</div>
               <p className="font-bold text-slate-700">Select a patient</p>
               <p className="text-sm text-slate-400 mt-1">Click on an appointment from the schedule to view patient details and write a prescription.</p>
             </div>
           )}
         </div>
       </div>
+
+      {/* QR Scanner Modal */}
+      {showScanner && (
+        <QRScanner
+          onClose={() => setShowScanner(false)}
+          onSuccess={() => {
+            setShowScanner(false);
+            loadSchedule(); // Refresh schedule after check-in
+          }}
+        />
+      )}
     </div>
   );
 }

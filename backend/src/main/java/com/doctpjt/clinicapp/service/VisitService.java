@@ -34,6 +34,9 @@ public class VisitService {
         if (appointment.getStatus() == AppointmentStatus.CANCELLED) {
             throw new IllegalArgumentException("Cannot create visit for cancelled appointment");
         }
+        if (appointment.getStatus() == AppointmentStatus.MISSED) {
+            throw new IllegalArgumentException("Cannot create visit for missed appointment");
+        }
 
         if (!appointment.getDoctorUserId().equals(request.doctorUserId())
             || !appointment.getPatientUserId().equals(request.patientUserId())) {

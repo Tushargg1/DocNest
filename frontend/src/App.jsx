@@ -16,6 +16,7 @@ import PatientVisits from "./pages/PatientVisits";
 import RegisterPatient from "./pages/RegisterPatient";
 import Profile from "./pages/Profile";
 import SymptomChecker from "./pages/SymptomChecker";
+import HealthIntake from "./pages/HealthIntake";
 
 function App() {
   return (
@@ -84,6 +85,14 @@ function App() {
             element={
               <ProtectedRoute roles={["PATIENT"]}>
                 <SymptomChecker />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/intake"
+            element={
+              <ProtectedRoute roles={["PATIENT"]}>
+                <HealthIntake />
               </ProtectedRoute>
             }
           />

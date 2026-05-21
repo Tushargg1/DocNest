@@ -6,7 +6,7 @@ import { useAuth } from "../context/AuthContext";
 function LoginDoctorClinic() {
   const { login } = useAuth();
   const navigate = useNavigate();
-  const [form, setForm] = useState({ email: "", password: "" });
+  const [form, setForm] = useState({ identifier: "", password: "" });
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
@@ -47,12 +47,12 @@ function LoginDoctorClinic() {
 
         <form onSubmit={handleSubmit} className="frost-card mt-10 space-y-5 rounded-[2.5rem] p-10 fade-up stagger-2 shadow-2xl">
           <div>
-            <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Professional Email</label>
+            <label className="text-xs font-bold uppercase tracking-widest text-slate-400">Email or Phone</label>
             <input
-              type="email"
-              placeholder="e.g. clinic@hospital.com"
-              value={form.email}
-              onChange={(e) => setForm({ ...form, email: e.target.value })}
+              type="text"
+              placeholder="e.g. clinic@careplus.in or 9100000003"
+              value={form.identifier}
+              onChange={(e) => setForm({ ...form, identifier: e.target.value })}
               className="field mt-2"
               required
             />
@@ -80,7 +80,30 @@ function LoginDoctorClinic() {
           </button>
         </form>
 
-        <p className="mt-8 text-center text-sm text-slate-500 fade-up stagger-3">
+        {/* ── DEV ONLY: quick-login buttons ── */}
+        <div className="mt-8 fade-up stagger-3 rounded-2xl border border-dashed border-amber-300 bg-amber-50 p-5">
+          <p className="mb-3 text-center text-[11px] font-black uppercase tracking-widest text-amber-600">
+            🛠 Dev Quick Login
+          </p>
+          <div className="space-y-2">
+            {[
+              { label: "Doctor",       email: "doctor@test.com"  },
+              { label: "Clinic Admin", email: "clinic@test.com"  },
+              { label: "Admin",        email: "admin@test.com"   },
+            ].map(({ label, email }) => (
+              <button
+                key={email}
+                type="button"
+                onClick={() => setForm({ identifier: email, password: "password123" })}
+                className="w-full rounded-xl border border-amber-200 bg-white py-2.5 text-sm font-bold text-slate-700 hover:bg-amber-100 transition"
+              >
+                {label} — {email}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <p className="mt-6 text-center text-sm text-slate-500 fade-up stagger-3">
           Need to join the network? <Link to="/register" className="font-bold text-teal-600">Register your clinic</Link>
         </p>
       </div>
