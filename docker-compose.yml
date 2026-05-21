@@ -1,0 +1,44 @@
+version: "3.8"
+
+services:
+  mysql:
+    image: mysql:8.0
+    container_name: clinicapp-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpass
+      MYSQL_DATABASE: clinic_app_db
+      MYSQL_USER: clinicuser
+      MYSQL_PASSWORD: clinicpass
+    ports:
+      - "3306:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: clinicapp-backend
+    restart: unless-stopped
+    ports:
+      - "8085:8085"
+    environment:
+      PORT: "8085"
+      SPRING_DATASOURCE_URL: jdbc:mysql://mysql:3306/clinic_app_db?useSSL=false&allowPublicKeyRetrieval=true
+      DB_USERNAME: clinicuser
+      DB_PASSWORD: clinicpass
+      APP_JWT_SECRET: local-dev-jwt-secret-key-minimum-32-bytes-long
+      EMAIL_ENABLED: "false"
+      PAYMENT_ENABLED: "false"
+    depends_on:
+      mysql:
+        condition: service_healthy
+
+volumes:
+  mysql_data:

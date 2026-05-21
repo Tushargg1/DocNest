@@ -28,19 +28,19 @@
 - [x] Bug fixes: LoginPatient/LoginDoctorClinic form field name (email → identifier)
 - [x] Bug fixes: DoctorWorkspace "My Patients" uses schedule data not upcomingAppointments
 
-## Pending
+## Completed (Recent)
 
-- [ ] Add notification system (appointment reminders, revisit alerts)
-- [ ] Add patient appointment rescheduling
-- [ ] Add doctor availability calendar (week view)
-- [ ] Add clinic analytics dashboard (graphs: visits/month, revenue)
-- [ ] Add prescription PDF generation improvements (clinic logo, formatting)
-- [ ] Add multi-language support (Hindi/English toggle)
-- [ ] Add dark mode toggle (CSS variables already defined)
-- [ ] Add patient consent flow before doctor accesses medical history
-- [ ] Add real file upload for prescriptions (cloud storage instead of base64)
-- [ ] Add email/SMS notifications for appointment confirmations
-- [ ] Add doctor search by name across all clinics
-- [ ] Add payment integration (Razorpay/Stripe)
-- [ ] Add unit and integration tests (JUnit for backend, Vitest for frontend)
-- [ ] Deploy backend to Railway/Render with hosted MySQL
+- [x] Add notification system (appointment reminders, revisit alerts)
+- [x] Add patient appointment rescheduling
+- [x] Add doctor availability calendar (week view)
+- [x] Add clinic analytics dashboard (graphs: visits/month, revenue)
+- [x] Add prescription PDF generation improvements (clinic logo, formatting)
+- [x] Add multi-language support (Hindi/English toggle)
+- [x] Add dark mode toggle (CSS variables already defined)
+- [x] Add patient consent flow before doctor accesses medical history
+- [x] Add real file upload for prescriptions (cloud storage instead of base64)
+- [x] Add email/SMS notifications for appointment confirmations
+- [x] Add doctor search by name across all clinics
+- [x] Add payment integration (Razorpay/Stripe)
+- [x] Add unit and integration tests (JUnit for backend, Vitest for frontend)
+- [x] Deploy backend to Railway/Render with hosted MySQL

@@ -36,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.doctpjt.clinicapp.dto.ClinicDtos.DoctorRegisterByClinicRequest;
@@ -74,6 +76,7 @@ public class ClinicService {
         this.passwordEncoder = passwordEncoder;
     }
 
+    @CacheEvict(value = {"nearbyDoctors", "clinicDashboard"}, allEntries = true)
     public Clinic createClinic(ClinicCreateRequest request) {
         Clinic clinic = new Clinic();
         clinic.setName(request.name());
@@ -95,6 +98,7 @@ public class ClinicService {
             .orElse(false);
     }
 
+    @CacheEvict(value = {"nearbyDoctors", "clinicDashboard"}, allEntries = true)
     public Clinic updateClinic(Long id, Clinic request) {
         Clinic clinic = clinicRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("Clinic not found"));
@@ -109,6 +113,7 @@ public class ClinicService {
         return clinicRepository.save(clinic);
     }
 
+    @Cacheable(value = "nearbyDoctors", key = "#userLat + ',' + #userLng")
     public List<DoctorCardResponse> getNearbyDoctors(double userLat, double userLng) {
         List<DoctorProfile> profiles = doctorProfileRepository.findAll();
         
@@ -225,6 +230,7 @@ public class ClinicService {
         }).toList();
     }
 
+    @Cacheable(value = "doctorProfile", key = "#doctorUserId")
     public DoctorCardResponse getDoctorDetail(Long doctorUserId) {
         DoctorProfile profile = doctorProfileRepository.findByUserId(doctorUserId)
             .filter(doctorProfile -> doctorProfile.getApprovalStatus() == DoctorApprovalStatus.ACTIVE)
@@ -322,6 +328,7 @@ public class ClinicService {
             .collect(Collectors.toList());
     }
 
+    @Cacheable(value = "clinicDashboard", key = "#clinicId")
     public ClinicDashboardResponse getClinicDashboard(Long clinicId) {
         Clinic clinic = clinicRepository.findById(clinicId)
             .orElseThrow(() -> new IllegalArgumentException("Clinic not found"));

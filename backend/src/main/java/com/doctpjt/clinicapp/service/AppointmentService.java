@@ -25,6 +25,8 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Locale;
+import org.springframework.cache.annotation.CacheEvict;
+import org.springframework.cache.annotation.Cacheable;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -39,8 +41,9 @@ public class AppointmentService {
     private final NotificationService notificationService;
     private final EmailService emailService;
     private final SmsService smsService;
+    private final CheckInCodeService checkInCodeService;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository, ClinicRepository clinicRepository, RatingRepository ratingRepository, DoctorLeaveRepository doctorLeaveRepository, UserRepository userRepository, NotificationService notificationService, EmailService emailService, SmsService smsService) {
+    public AppointmentService(AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository, ClinicRepository clinicRepository, RatingRepository ratingRepository, DoctorLeaveRepository doctorLeaveRepository, UserRepository userRepository, NotificationService notificationService, EmailService emailService, SmsService smsService, CheckInCodeService checkInCodeService) {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.clinicRepository = clinicRepository;
@@ -50,8 +53,10 @@ public class AppointmentService {
         this.notificationService = notificationService;
         this.emailService = emailService;
         this.smsService = smsService;
+        this.checkInCodeService = checkInCodeService;
     }
 
+    @Cacheable(value = "availableSlots", key = "#doctorUserId + '-' + #date")
     public AvailableSlotsResponse getAvailableSlots(Long doctorUserId, LocalDate date) {
         DoctorProfile doctor = doctorProfileRepository.findByUserId(doctorUserId)
             .orElseThrow(() -> new IllegalArgumentException("Doctor profile not found"));
@@ -95,6 +100,7 @@ public class AppointmentService {
         return new AvailableSlotsResponse(doctorUserId, date, slots);
     }
 
+    @CacheEvict(value = {"availableSlots", "clinicDashboard"}, allEntries = true)
     public AppointmentResponse book(BookAppointmentRequest request) {
         DoctorProfile doctor = doctorProfileRepository.findByUserId(request.doctorUserId())
             .orElseThrow(() -> new IllegalArgumentException("Doctor profile not found"));
@@ -130,6 +136,11 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.BOOKED);
 
         Appointment saved = appointmentRepository.save(appointment);
+
+        // Store check-in code in Redis for O(1) lookup
+        if (saved.getCheckInCode() != null) {
+            checkInCodeService.storeCode(saved.getCheckInCode(), saved.getId());
+        }
 
         // Create appointment reminder notification for the patient
         try {
@@ -173,6 +184,7 @@ public class AppointmentService {
             .stream().map(this::toResponse).toList();
     }
 
+    @CacheEvict(value = {"availableSlots", "clinicDashboard"}, allEntries = true)
     public AppointmentResponse cancelAppointment(Long appointmentId, Long requesterUserId, boolean admin) {
         Appointment appointment = appointmentRepository.findById(appointmentId)
             .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
@@ -308,10 +320,20 @@ public class AppointmentService {
      * Either patient (with their own appointment) or doctor (scanning patient's code) can call this.
      */
     public AppointmentResponse checkIn(String checkInCode, Long requesterUserId, boolean isDoctor) {
-        Appointment appointment = appointmentRepository.findAll().stream()
-            .filter(a -> checkInCode.equalsIgnoreCase(a.getCheckInCode()))
-            .findFirst()
-            .orElseThrow(() -> new IllegalArgumentException("Invalid check-in code"));
+        // O(1) lookup via Redis/in-memory cache
+        Long appointmentId = checkInCodeService.getAppointmentId(checkInCode);
+
+        Appointment appointment;
+        if (appointmentId != null) {
+            appointment = appointmentRepository.findById(appointmentId)
+                .orElseThrow(() -> new IllegalArgumentException("Invalid check-in code"));
+        } else {
+            // Fallback: DB scan (for old appointments without Redis entry)
+            appointment = appointmentRepository.findAll().stream()
+                .filter(a -> checkInCode.equalsIgnoreCase(a.getCheckInCode()))
+                .findFirst()
+                .orElseThrow(() -> new IllegalArgumentException("Invalid check-in code"));
+        }
 
         // Authorization: either the patient themselves OR the doctor for this appointment
         if (!isDoctor && !appointment.getPatientUserId().equals(requesterUserId)) {

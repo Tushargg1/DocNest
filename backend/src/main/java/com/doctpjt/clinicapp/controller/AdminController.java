@@ -121,4 +121,15 @@ public class AdminController {
         clinicRepository.deleteById(clinicId);
         return "Clinic application rejected";
     }
+
+    @PostMapping("/clear-patient-appointments")
+    @PreAuthorize("hasRole('ADMIN')")
+    public Map<String, Object> clearPatientAppointments(@RequestParam Long patientUserId) {
+        List<Appointment> appointments = appointmentRepository.findByPatientUserId(patientUserId);
+        // Also clear related visit records and notifications
+        List<VisitRecord> visits = visitRecordRepository.findByPatientUserIdOrderByVisitDateDesc(patientUserId);
+        visitRecordRepository.deleteAll(visits);
+        appointmentRepository.deleteAll(appointments);
+        return Map.of("deletedAppointments", appointments.size(), "deletedVisits", visits.size(), "patientUserId", patientUserId);
+    }
 }

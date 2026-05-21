@@ -171,7 +171,9 @@ function PatientVisits() {
       setAppointments(data || []);
       setError("");
     } catch (err) {
-      setError(err?.response?.data || "Unable to cancel appointment.");
+      const errData = err?.response?.data;
+      const msg = typeof errData === "string" ? errData : errData?.message || "Unable to cancel appointment.";
+      setError(msg);
     }
   };
 
