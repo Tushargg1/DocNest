@@ -5,5 +5,6 @@ public enum NotificationType {
     APPOINTMENT_RESCHEDULED,
     REVISIT_ALERT,
     CONSENT_REQUEST,
+    MEDICINE_REMINDER,
     GENERAL
 }

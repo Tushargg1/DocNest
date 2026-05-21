@@ -5,6 +5,7 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import AppointmentQR from "../components/AppointmentQR";
 import RescheduleModal from "../components/RescheduleModal";
+import MedicineReminders from "../components/MedicineReminders";
 
 function PatientVisits() {
   const { session } = useAuth();
@@ -364,6 +365,9 @@ function PatientVisits() {
           </div>
         </section>
       )}
+
+      {/* Medicine Reminders */}
+      <MedicineReminders />
 
       {/* Post-visit Reviews — only show when visit record exists AND prescription uploaded */}
       {(() => {

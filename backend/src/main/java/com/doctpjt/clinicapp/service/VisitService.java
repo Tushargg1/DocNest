@@ -8,6 +8,8 @@ import com.doctpjt.clinicapp.entity.VisitRecord;
 import com.doctpjt.clinicapp.repository.AppointmentRepository;
 import com.doctpjt.clinicapp.repository.VisitRecordRepository;
 import java.util.List;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 @Service
@@ -16,15 +18,20 @@ public class VisitService {
     private final VisitRecordRepository visitRecordRepository;
     private final AppointmentRepository appointmentRepository;
     private final ClinicalEmbeddingService clinicalEmbeddingService;
+    private final MedicineReminderService medicineReminderService;
+
+    private static final Logger log = LoggerFactory.getLogger(VisitService.class);
 
     public VisitService(
         VisitRecordRepository visitRecordRepository,
         AppointmentRepository appointmentRepository,
-        ClinicalEmbeddingService clinicalEmbeddingService
+        ClinicalEmbeddingService clinicalEmbeddingService,
+        MedicineReminderService medicineReminderService
     ) {
         this.visitRecordRepository = visitRecordRepository;
         this.appointmentRepository = appointmentRepository;
         this.clinicalEmbeddingService = clinicalEmbeddingService;
+        this.medicineReminderService = medicineReminderService;
     }
 
     public VisitResponse createVisit(VisitCreateRequest request) {
@@ -60,6 +67,14 @@ public class VisitService {
 
         VisitRecord saved = visitRecordRepository.save(visit);
         clinicalEmbeddingService.embedVisit(saved);
+
+        // Auto-generate medicine reminders from the visit medications
+        try {
+            medicineReminderService.createRemindersFromVisit(saved);
+        } catch (Exception e) {
+            log.warn("Failed to generate medicine reminders for visit {}: {}", saved.getId(), e.getMessage());
+        }
+
         return toResponse(saved);
     }
 
