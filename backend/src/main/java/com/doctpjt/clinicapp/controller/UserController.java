@@ -2,6 +2,8 @@ package com.doctpjt.clinicapp.controller;
 
 import com.doctpjt.clinicapp.entity.User;
 import com.doctpjt.clinicapp.repository.UserRepository;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
@@ -15,21 +17,24 @@ public class UserController {
     }
 
     @GetMapping("/{id}")
+    @PreAuthorize("hasRole('ADMIN') or #id == principal")
     public User getUser(@PathVariable Long id) {
-        System.out.println("Fetching user with ID: " + id);
-        try {
-            return userRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("User not found with ID: " + id));
-        } catch (Exception e) {
-            e.printStackTrace();
-            throw e;
-        }
+        return userRepository.findById(id)
+            .orElseThrow(() -> new IllegalArgumentException("User not found"));
     }
 
     @PutMapping("/{id}")
-    public User updateUser(@PathVariable Long id, @RequestBody User request) {
+    @PreAuthorize("hasRole('ADMIN') or #id == principal")
+    public User updateUser(@PathVariable Long id, @RequestBody User request, Authentication authentication) {
         User user = userRepository.findById(id)
             .orElseThrow(() -> new IllegalArgumentException("User not found"));
+
+        // Prevent role escalation — only admin can change roles
+        boolean isAdmin = authentication.getAuthorities().stream()
+            .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+        if (!isAdmin && request.getRole() != null && request.getRole() != user.getRole()) {
+            throw new IllegalArgumentException("Cannot change your own role");
+        }
 
         String incomingEmail = request.getEmail() == null ? null : request.getEmail().trim().toLowerCase();
         if (incomingEmail != null && !incomingEmail.isEmpty()) {
@@ -52,12 +57,12 @@ public class UserController {
             .ifPresent(found -> {
                 throw new IllegalArgumentException("Phone number already in use");
             });
-        
+
         user.setFullName(request.getFullName());
         user.setPhoneNumber(incomingPhone);
         user.setLatitude(request.getLatitude());
         user.setLongitude(request.getLongitude());
-        
+
         return userRepository.save(user);
     }
 }

@@ -2,8 +2,9 @@ package com.doctpjt.clinicapp.controller;
 
 import com.doctpjt.clinicapp.entity.PatientProfile;
 import com.doctpjt.clinicapp.repository.PatientProfileRepository;
-import org.springframework.web.bind.annotation.*;
 import java.util.Map;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/patients")
@@ -16,10 +17,10 @@ public class PatientController {
     }
 
     @GetMapping("/profile/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR') or #userId == principal")
     public PatientProfile getProfile(@PathVariable Long userId) {
         return patientProfileRepository.findByUserId(userId)
             .orElseGet(() -> {
-                // Return an empty profile shell so frontend can populate it
                 PatientProfile empty = new PatientProfile();
                 empty.setUserId(userId);
                 return empty;
@@ -27,10 +28,11 @@ public class PatientController {
     }
 
     @PutMapping("/profile/{userId}")
+    @PreAuthorize("hasRole('ADMIN') or #userId == principal")
     public Map<String, Object> updateProfile(@PathVariable Long userId, @RequestBody Map<String, Object> request) {
         PatientProfile profile = patientProfileRepository.findFirstByUserId(userId)
             .orElse(new PatientProfile());
-        
+
         profile.setUserId(userId);
         if (request.get("age") != null && !request.get("age").toString().isEmpty()) {
             profile.setAge(Integer.parseInt(request.get("age").toString()));
@@ -47,7 +49,7 @@ public class PatientController {
         profile.setEmergencyContact((String) request.get("emergencyContact"));
         profile.setMedicalHistory((String) request.get("medicalHistory"));
         profile.setAbhaId((String) request.get("abhaId"));
-        
+
         patientProfileRepository.save(profile);
         return request;
     }
