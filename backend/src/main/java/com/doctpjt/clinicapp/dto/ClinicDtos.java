@@ -41,7 +41,16 @@ public class ClinicDtos {
         String clinicAddress,
         Double distanceKm,
         List<String> degrees,
-        Double averageRating
+        Double averageRating,
+        String clinicAbout,
+        String clinicHelpline,
+        String clinicEmail,
+        String clinicWebsite,
+        String clinicGoogleMapsUrl,
+        String clinicPhotos,
+        String clinicOpeningHours,
+        String clinicServices,
+        String clinicPhone
     ) {}
 
     public record ClinicDoctorResponse(
@@ -109,5 +118,15 @@ public class ClinicDtos {
         Integer slotDurationMinutes,
         String workStart,
         String workEnd
+    ) {}
+
+    public record PatientSearchResult(
+        Long patientUserId,
+        String name,
+        String phone,
+        String tokenNumber,
+        LocalDateTime lastVisitDate,
+        String lastDoctorName,
+        Integer totalAppointments
     ) {}
 }

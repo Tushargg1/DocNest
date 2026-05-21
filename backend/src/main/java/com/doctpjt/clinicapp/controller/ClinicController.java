@@ -117,6 +117,15 @@ public class ClinicController {
         return clinicService.registerDoctorByClinic(id, request);
     }
 
+    @GetMapping("/{id}/search-patients")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('CLINIC') and @clinicService.isClinicOwnedBy(#id, principal))")
+    public List<com.doctpjt.clinicapp.dto.ClinicDtos.PatientSearchResult> searchPatients(
+            @PathVariable Long id,
+            @RequestParam(required = false) String name,
+            @RequestParam(required = false) String phone) {
+        return clinicService.searchPatients(id, name, phone);
+    }
+
     @PostMapping("/send-revisit-reminder")
     @PreAuthorize("hasRole('CLINIC') or hasRole('ADMIN')")
     public Map<String, String> sendRevisitReminder(@RequestBody Map<String, Object> body, Authentication authentication) {

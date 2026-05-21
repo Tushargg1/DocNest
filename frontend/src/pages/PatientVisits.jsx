@@ -5,7 +5,6 @@ import { useAuth } from "../context/AuthContext";
 import { useLanguage } from "../context/LanguageContext";
 import AppointmentQR from "../components/AppointmentQR";
 import RescheduleModal from "../components/RescheduleModal";
-import MedicineReminders from "../components/MedicineReminders";
 
 function PatientVisits() {
   const { session } = useAuth();
@@ -366,8 +365,94 @@ function PatientVisits() {
         </section>
       )}
 
-      {/* Medicine Reminders */}
-      <MedicineReminders />
+      {/* Upcoming Appointments Overview */}
+      {(() => {
+        const allUpcoming = [...activeTokens, ...upcomingAppointments];
+        if (allUpcoming.length === 0) return null;
+        return (
+          <section className="mb-8">
+            <h2 className="text-lg font-black text-slate-900 dark:text-slate-100 mb-4">Upcoming Appointments</h2>
+            <div className="space-y-3">
+              {allUpcoming.map((appt) => {
+                const doctor = doctorCache[appt.doctorUserId];
+                // Fetch doctor details if not cached
+                if (!doctor && appt.doctorUserId) {
+                  fetchDoctorDetails(appt.doctorUserId);
+                }
+                const isToday = appt.startTime && appt.startTime.slice(0, 10) === today;
+                return (
+                  <div
+                    key={appt.appointmentId}
+                    className={`frost-card rounded-2xl p-5 border ${isToday ? "border-teal-200 dark:border-teal-800 bg-teal-50/30 dark:bg-teal-900/10" : "border-slate-100 dark:border-slate-700"}`}
+                  >
+                    <div className="flex items-start justify-between gap-4 flex-wrap">
+                      <div className="flex items-start gap-4 flex-1 min-w-0">
+                        {/* Token Badge */}
+                        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-600 text-white font-black text-sm">
+                          {appt.tokenNumber || "#"}
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-2 flex-wrap">
+                            <p className="font-bold text-slate-900 dark:text-slate-100 text-sm">
+                              Dr. {doctor?.doctorName || `Doctor #${appt.doctorUserId}`}
+                            </p>
+                            {isToday && (
+                              <span className="text-[10px] font-bold bg-teal-100 dark:bg-teal-800 text-teal-700 dark:text-teal-300 px-2 py-0.5 rounded-full flex items-center gap-1">
+                                <span className="h-1.5 w-1.5 rounded-full bg-teal-500 animate-pulse" />
+                                Today
+                              </span>
+                            )}
+                          </div>
+                          {doctor?.specialization && (
+                            <p className="text-xs text-teal-600 dark:text-teal-400 mt-0.5">{doctor.specialization}</p>
+                          )}
+                          <p className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                            {doctor?.clinicName || "Clinic"}
+                            {doctor?.clinicAddress && ` — ${doctor.clinicAddress}`}
+                          </p>
+                          <p className="text-xs font-semibold text-slate-700 dark:text-slate-300 mt-1.5">
+                            {formatDateTime(appt.startTime)}
+                          </p>
+                        </div>
+                      </div>
+                      {/* Right Actions */}
+                      <div className="flex flex-col items-end gap-2 shrink-0">
+                        <span className="text-[10px] font-bold uppercase tracking-widest text-slate-400">Token</span>
+                        <span className="text-xl font-black text-teal-600 dark:text-teal-400">{appt.tokenNumber || "—"}</span>
+                        {doctor?.clinicAddress && (
+                          <a
+                            href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(doctor.clinicAddress)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="btn-ghost px-3 py-1.5 text-[10px] font-bold flex items-center gap-1"
+                          >
+                            <svg className="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+                            </svg>
+                            Get Directions
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                    {/* Early Arrival Reminder */}
+                    {isToday && (
+                      <div className="mt-3 flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
+                        <svg className="h-4 w-4 text-amber-600 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                        </svg>
+                        <p className="text-xs font-semibold text-amber-700 dark:text-amber-400">
+                          Please arrive 10 minutes early for check-in
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </section>
+        );
+      })()}
 
       {/* Post-visit Reviews — only show when visit record exists AND prescription uploaded */}
       {(() => {

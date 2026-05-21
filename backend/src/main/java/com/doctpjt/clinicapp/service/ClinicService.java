@@ -108,6 +108,14 @@ public class ClinicService {
         clinic.setPhone(request.getPhone());
         clinic.setLatitude(request.getLatitude());
         clinic.setLongitude(request.getLongitude());
+        clinic.setAbout(request.getAbout());
+        clinic.setHelpline(request.getHelpline());
+        clinic.setEmail(request.getEmail());
+        clinic.setWebsite(request.getWebsite());
+        clinic.setGoogleMapsUrl(request.getGoogleMapsUrl());
+        clinic.setPhotos(request.getPhotos());
+        clinic.setOpeningHours(request.getOpeningHours());
+        clinic.setServices(request.getServices());
         clinic.setApproved(false); // Reset approval on update
         
         return clinicRepository.save(clinic);
@@ -165,7 +173,16 @@ public class ClinicService {
                     clinic.getAddress(),
                     Math.round(distance * 100.0) / 100.0,
                     degrees,
-                    Math.round(avgRating * 100.0) / 100.0
+                    Math.round(avgRating * 100.0) / 100.0,
+                    clinic.getAbout(),
+                    clinic.getHelpline(),
+                    clinic.getEmail(),
+                    clinic.getWebsite(),
+                    clinic.getGoogleMapsUrl(),
+                    clinic.getPhotos(),
+                    clinic.getOpeningHours(),
+                    clinic.getServices(),
+                    clinic.getPhone()
                 );
             })
             .filter(card -> card != null)
@@ -264,7 +281,16 @@ public class ClinicService {
             clinic != null ? clinic.getAddress() : "N/A",
             null, // distance not applicable for single lookup without user coords
             degrees,
-            Math.round(avgRating * 100.0) / 100.0
+            Math.round(avgRating * 100.0) / 100.0,
+            clinic != null ? clinic.getAbout() : null,
+            clinic != null ? clinic.getHelpline() : null,
+            clinic != null ? clinic.getEmail() : null,
+            clinic != null ? clinic.getWebsite() : null,
+            clinic != null ? clinic.getGoogleMapsUrl() : null,
+            clinic != null ? clinic.getPhotos() : null,
+            clinic != null ? clinic.getOpeningHours() : null,
+            clinic != null ? clinic.getServices() : null,
+            clinic != null ? clinic.getPhone() : null
         );
     }
 
@@ -321,7 +347,16 @@ public class ClinicService {
                     clinic != null ? clinic.getAddress() : "N/A",
                     null,
                     degrees,
-                    Math.round(avgRating * 100.0) / 100.0
+                    Math.round(avgRating * 100.0) / 100.0,
+                    clinic != null ? clinic.getAbout() : null,
+                    clinic != null ? clinic.getHelpline() : null,
+                    clinic != null ? clinic.getEmail() : null,
+                    clinic != null ? clinic.getWebsite() : null,
+                    clinic != null ? clinic.getGoogleMapsUrl() : null,
+                    clinic != null ? clinic.getPhotos() : null,
+                    clinic != null ? clinic.getOpeningHours() : null,
+                    clinic != null ? clinic.getServices() : null,
+                    clinic != null ? clinic.getPhone() : null
                 );
             })
             .filter(card -> card != null)
@@ -653,6 +688,93 @@ public class ClinicService {
             thisMonthVisits,
             thisMonthRev
         );
+    }
+
+    public List<com.doctpjt.clinicapp.dto.ClinicDtos.PatientSearchResult> searchPatients(Long clinicId, String name, String phone) {
+        List<Appointment> clinicAppointments = appointmentRepository.findByClinicId(clinicId);
+
+        // Get unique patient IDs from clinic appointments
+        List<Long> patientUserIds = clinicAppointments.stream()
+            .map(Appointment::getPatientUserId)
+            .filter(id -> id != null)
+            .distinct()
+            .toList();
+
+        if (patientUserIds.isEmpty()) return List.of();
+
+        Map<Long, User> userMap = userRepository.findAllById(patientUserIds).stream()
+            .collect(Collectors.toMap(User::getId, u -> u));
+
+        // Filter by name and/or phone
+        List<Long> matchedIds = patientUserIds.stream()
+            .filter(id -> {
+                User u = userMap.get(id);
+                if (u == null) return false;
+                boolean nameMatch = true;
+                boolean phoneMatch = true;
+                if (name != null && !name.isBlank()) {
+                    nameMatch = u.getFullName() != null && u.getFullName().toLowerCase().contains(name.toLowerCase());
+                }
+                if (phone != null && !phone.isBlank()) {
+                    phoneMatch = u.getPhoneNumber() != null && u.getPhoneNumber().contains(phone);
+                }
+                return nameMatch && phoneMatch;
+            })
+            .toList();
+
+        if (matchedIds.isEmpty()) return List.of();
+
+        // Get today's token numbers
+        java.time.LocalDate today = java.time.LocalDate.now();
+        LocalDateTime todayStart = today.atStartOfDay();
+        LocalDateTime todayEnd = today.atTime(23, 59, 59);
+
+        Map<Long, String> todayTokens = clinicAppointments.stream()
+            .filter(a -> a.getStartTime() != null
+                && !a.getStartTime().isBefore(todayStart)
+                && !a.getStartTime().isAfter(todayEnd)
+                && a.getStatus() == AppointmentStatus.BOOKED)
+            .collect(Collectors.toMap(
+                Appointment::getPatientUserId,
+                a -> a.getTokenNumber() != null ? a.getTokenNumber() : "—",
+                (a, b) -> a // if multiple tokens, take first
+            ));
+
+        // Get latest visit info per patient
+        List<Long> allApptIds = clinicAppointments.stream().map(Appointment::getId).toList();
+        List<VisitRecord> allVisits = allApptIds.isEmpty() ? List.of() : visitRecordRepository.findByAppointmentIdIn(allApptIds);
+        Map<Long, VisitRecord> latestVisitByPatient = new HashMap<>();
+        allVisits.forEach(v -> {
+            VisitRecord existing = latestVisitByPatient.get(v.getPatientUserId());
+            if (existing == null || (v.getVisitDate() != null && existing.getVisitDate() != null && v.getVisitDate().isAfter(existing.getVisitDate()))) {
+                latestVisitByPatient.put(v.getPatientUserId(), v);
+            }
+        });
+
+        // Count appointments per patient
+        Map<Long, Long> apptCountByPatient = clinicAppointments.stream()
+            .filter(a -> a.getPatientUserId() != null)
+            .collect(Collectors.groupingBy(Appointment::getPatientUserId, Collectors.counting()));
+
+        return matchedIds.stream().map(id -> {
+            User u = userMap.get(id);
+            VisitRecord lastVisit = latestVisitByPatient.get(id);
+            String lastDoctorName = null;
+            LocalDateTime lastVisitTime = null;
+            if (lastVisit != null) {
+                lastDoctorName = userRepository.findById(lastVisit.getDoctorUserId()).map(User::getFullName).orElse(null);
+                lastVisitTime = lastVisit.getVisitDate() != null ? lastVisit.getVisitDate().atStartOfDay() : null;
+            }
+            return new com.doctpjt.clinicapp.dto.ClinicDtos.PatientSearchResult(
+                id,
+                u.getFullName(),
+                u.getPhoneNumber(),
+                todayTokens.getOrDefault(id, null),
+                lastVisitTime,
+                lastDoctorName,
+                apptCountByPatient.getOrDefault(id, 0L).intValue()
+            );
+        }).toList();
     }
 
     private double haversineKm(double lat1, double lon1, double lat2, double lon2) {

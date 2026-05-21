@@ -1,5 +1,6 @@
 package com.doctpjt.clinicapp.entity;
 
+import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
@@ -29,4 +30,24 @@ public class Clinic {
     private Long ownerUserId;
 
     private boolean approved = false;
+
+    @Column(columnDefinition = "TEXT")
+    private String about;
+
+    private String helpline;
+
+    private String email;
+
+    private String website;
+
+    @Column(length = 500)
+    private String googleMapsUrl;
+
+    @Column(columnDefinition = "TEXT")
+    private String photos;
+
+    private String openingHours;
+
+    @Column(length = 1000)
+    private String services;
 }

@@ -289,6 +289,24 @@ function Profile() {
 
   return (
     <div className="shell max-w-5xl py-12 fade-up">
+      {/* Health Profile Intake Banner */}
+      {session.role === "PATIENT" && !patientMedical?.medicalHistory && (
+        <div className="mb-6 rounded-2xl border border-teal-200 dark:border-teal-800 bg-teal-50/50 dark:bg-teal-900/10 p-4 flex items-center gap-4 fade-up">
+          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-teal-100 dark:bg-teal-900/30">
+            <svg className="h-5 w-5 text-teal-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h3.75M9 15h3.75M9 18h3.75m3 .75H18a2.25 2.25 0 002.25-2.25V6.108c0-1.135-.845-2.098-1.976-2.192a48.424 48.424 0 00-1.123-.08m-5.801 0c-.065.21-.1.433-.1.664 0 .414.336.75.75.75h4.5a.75.75 0 00.75-.75 2.25 2.25 0 00-.1-.664m-5.8 0A2.251 2.251 0 0113.5 2.25H15c1.012 0 1.867.668 2.15 1.586m-5.8 0c-.376.023-.75.05-1.124.08C9.095 4.01 8.25 4.973 8.25 6.108V8.25m0 0H4.875c-.621 0-1.125.504-1.125 1.125v11.25c0 .621.504 1.125 1.125 1.125h9.75c.621 0 1.125-.504 1.125-1.125V9.375c0-.621-.504-1.125-1.125-1.125H8.25zM6.75 12h.008v.008H6.75V12zm0 3h.008v.008H6.75V15zm0 3h.008v.008H6.75V18z" />
+            </svg>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-bold text-sm text-teal-900 dark:text-teal-200">Complete your Medical Profile</p>
+            <p className="text-xs text-teal-700 dark:text-teal-400 mt-0.5">Answer a few quick questions so doctors can treat you better. Takes 2-3 minutes.</p>
+          </div>
+          <a href="/intake" className="shrink-0 brand-btn px-4 py-2 text-xs">
+            Take Test
+          </a>
+        </div>
+      )}
+
       <div className="flex items-center justify-between mb-10 flex-wrap gap-4">
         <div>
           <p className="section-label">Account</p>
@@ -835,6 +853,15 @@ function Profile() {
                     />
                   </div>
                   <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">About / Description</label>
+                    <textarea
+                      value={clinic.about || ""}
+                      onChange={(e) => setClinic({ ...clinic, about: e.target.value })}
+                      placeholder="Describe your clinic — specialties, facilities, mission statement..."
+                      className="field mt-2 h-28 pt-3"
+                    />
+                  </div>
+                  <div>
                     <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Street Address</label>
                     <input
                       type="text"
@@ -843,6 +870,29 @@ function Profile() {
                       className="field mt-2"
                       required
                     />
+                  </div>
+                  <div>
+                    <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Google Maps URL</label>
+                    <div className="flex gap-2 mt-2">
+                      <input
+                        type="url"
+                        value={clinic.googleMapsUrl || ""}
+                        onChange={(e) => setClinic({ ...clinic, googleMapsUrl: e.target.value })}
+                        placeholder="Paste full Google Maps link..."
+                        className="field flex-1"
+                      />
+                      {clinic.googleMapsUrl && (
+                        <a
+                          href={clinic.googleMapsUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="btn-ghost px-4 py-2 text-xs shrink-0 flex items-center gap-1"
+                        >
+                          <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" /></svg>
+                          View on Map
+                        </a>
+                      )}
+                    </div>
                   </div>
                   <div className="grid gap-6 md:grid-cols-2">
                     <div>
@@ -863,6 +913,157 @@ function Profile() {
                         className="field mt-2"
                       />
                     </div>
+                  </div>
+
+                  {/* Contact Info */}
+                  <div className="border-t border-slate-100 pt-6">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Contact Information</p>
+                    <div className="grid gap-6 md:grid-cols-2">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Phone</label>
+                        <input
+                          type="tel"
+                          value={clinic.phone || ""}
+                          onChange={(e) => setClinic({ ...clinic, phone: e.target.value })}
+                          placeholder="Main phone number"
+                          className="field mt-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Helpline / Emergency</label>
+                        <input
+                          type="tel"
+                          value={clinic.helpline || ""}
+                          onChange={(e) => setClinic({ ...clinic, helpline: e.target.value })}
+                          placeholder="24/7 helpline number"
+                          className="field mt-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Email</label>
+                        <input
+                          type="email"
+                          value={clinic.email || ""}
+                          onChange={(e) => setClinic({ ...clinic, email: e.target.value })}
+                          placeholder="clinic@example.com"
+                          className="field mt-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Website</label>
+                        <input
+                          type="url"
+                          value={clinic.website || ""}
+                          onChange={(e) => setClinic({ ...clinic, website: e.target.value })}
+                          placeholder="https://www.yourclinic.com"
+                          className="field mt-2"
+                        />
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Hours & Services */}
+                  <div className="border-t border-slate-100 pt-6">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Hours & Services</p>
+                    <div className="space-y-4">
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Opening Hours</label>
+                        <input
+                          type="text"
+                          value={clinic.openingHours || ""}
+                          onChange={(e) => setClinic({ ...clinic, openingHours: e.target.value })}
+                          placeholder="e.g. Mon-Sat: 9:00 AM - 8:00 PM"
+                          className="field mt-2"
+                        />
+                      </div>
+                      <div>
+                        <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Services Offered (comma-separated)</label>
+                        <input
+                          type="text"
+                          value={clinic.services || ""}
+                          onChange={(e) => setClinic({ ...clinic, services: e.target.value })}
+                          placeholder="e.g. General Checkup, Dental, Pediatrics, X-Ray, Blood Test"
+                          className="field mt-2"
+                        />
+                        {clinic.services && (
+                          <div className="flex flex-wrap gap-1.5 mt-2">
+                            {clinic.services.split(",").filter(s => s.trim()).map((svc, i) => (
+                              <span key={i} className="text-xs bg-teal-50 text-teal-700 border border-teal-200 px-2.5 py-1 rounded-lg font-medium">
+                                {svc.trim()}
+                              </span>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Photos */}
+                  <div className="border-t border-slate-100 pt-6">
+                    <p className="text-xs font-bold uppercase tracking-widest text-slate-500 mb-4">Clinic Photos (up to 5)</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-4">
+                      {(() => {
+                        let photos = [];
+                        try { photos = JSON.parse(clinic.photos || "[]"); } catch { photos = []; }
+                        return photos.map((url, idx) => (
+                          <div key={idx} className="relative group rounded-xl overflow-hidden border border-slate-200 aspect-video">
+                            <img src={url} alt={`Clinic photo ${idx + 1}`} className="w-full h-full object-cover" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const updated = photos.filter((_, i) => i !== idx);
+                                setClinic({ ...clinic, photos: JSON.stringify(updated) });
+                              }}
+                              className="absolute top-2 right-2 bg-white/90 rounded-lg p-1.5 opacity-0 group-hover:opacity-100 transition-opacity shadow-sm"
+                              title="Remove photo"
+                            >
+                              <svg className="h-4 w-4 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" /></svg>
+                            </button>
+                          </div>
+                        ));
+                      })()}
+                      {(() => {
+                        let photos = [];
+                        try { photos = JSON.parse(clinic.photos || "[]"); } catch { photos = []; }
+                        if (photos.length < 5) return (
+                          <label className="flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-300 aspect-video cursor-pointer hover:border-teal-400 hover:bg-teal-50/30 transition">
+                            <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
+                            <span className="text-xs text-slate-500 mt-1 font-medium">Upload</span>
+                            <input
+                              type="file"
+                              accept="image/*"
+                              className="hidden"
+                              onChange={async (e) => {
+                                const file = e.target.files[0];
+                                if (!file) return;
+                                const formData = new FormData();
+                                formData.append("file", file);
+                                formData.append("clinicName", clinic.name || "clinic");
+                                formData.append("type", `photo-${photos.length + 1}`);
+                                try {
+                                  const { data } = await api.post("/upload/clinic-photo", formData, {
+                                    headers: { "Content-Type": "multipart/form-data" }
+                                  });
+                                  const updated = [...photos, data.url];
+                                  setClinic({ ...clinic, photos: JSON.stringify(updated) });
+                                  setMessage("Photo uploaded successfully.");
+                                } catch (err) {
+                                  setMessage("Photo upload failed. Please try again.");
+                                }
+                              }}
+                            />
+                          </label>
+                        );
+                        return null;
+                      })()}
+                    </div>
+                    {(() => {
+                      let photos = [];
+                      try { photos = JSON.parse(clinic.photos || "[]"); } catch { photos = []; }
+                      return photos.length === 0 ? (
+                        <p className="text-xs text-slate-400 text-center">No photos uploaded yet. Add photos to make your clinic stand out to patients.</p>
+                      ) : null;
+                    })()}
                   </div>
                 </div>
               </section>

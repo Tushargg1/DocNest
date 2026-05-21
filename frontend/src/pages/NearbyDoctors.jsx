@@ -445,6 +445,113 @@ function NearbyDoctors() {
                   {/* Expanded: Clinic details + doctors */}
                   {isExpanded && (
                     <div className="border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-5">
+                      {/* Clinic Info Section */}
+                      {(() => {
+                        const firstDoc = clinic.doctors[0];
+                        const about = firstDoc?.clinicAbout;
+                        const helpline = firstDoc?.clinicHelpline;
+                        const clinicEmail = firstDoc?.clinicEmail;
+                        const website = firstDoc?.clinicWebsite;
+                        const googleMapsUrl = firstDoc?.clinicGoogleMapsUrl;
+                        const photosRaw = firstDoc?.clinicPhotos;
+                        const openingHours = firstDoc?.clinicOpeningHours;
+                        const services = firstDoc?.clinicServices;
+                        const clinicPhone = firstDoc?.clinicPhone;
+                        let photos = [];
+                        try { photos = JSON.parse(photosRaw || "[]"); } catch { photos = []; }
+                        const hasInfo = about || helpline || clinicEmail || openingHours || services || photos.length > 0;
+
+                        if (!hasInfo) return null;
+                        return (
+                          <div className="mb-5 space-y-4">
+                            {/* Photos Gallery */}
+                            {photos.length > 0 && (
+                              <div className="flex gap-2 overflow-x-auto pb-2">
+                                {photos.map((url, idx) => (
+                                  <img key={idx} src={url} alt={`Clinic ${idx + 1}`} className="h-24 w-36 rounded-lg object-cover shrink-0 border border-slate-200" />
+                                ))}
+                              </div>
+                            )}
+
+                            {/* About */}
+                            {about && (
+                              <p className="text-sm text-slate-600 dark:text-slate-300 leading-relaxed">{about}</p>
+                            )}
+
+                            {/* Opening Hours & Services */}
+                            <div className="flex flex-wrap gap-x-6 gap-y-2 text-xs text-slate-500 dark:text-slate-400">
+                              {openingHours && (
+                                <span className="flex items-center gap-1.5">
+                                  <svg className="h-3.5 w-3.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                                  {openingHours}
+                                </span>
+                              )}
+                              {clinicPhone && (
+                                <span className="flex items-center gap-1.5">
+                                  <svg className="h-3.5 w-3.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                  {clinicPhone}
+                                </span>
+                              )}
+                              {clinicEmail && (
+                                <span className="flex items-center gap-1.5">
+                                  <svg className="h-3.5 w-3.5 text-teal-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
+                                  {clinicEmail}
+                                </span>
+                              )}
+                            </div>
+
+                            {/* Services as tags */}
+                            {services && (
+                              <div className="flex flex-wrap gap-1.5">
+                                {services.split(",").filter(s => s.trim()).map((svc, i) => (
+                                  <span key={i} className="text-[11px] bg-teal-50 dark:bg-teal-900/20 text-teal-700 dark:text-teal-300 border border-teal-200 dark:border-teal-800 px-2 py-0.5 rounded-md font-medium">
+                                    {svc.trim()}
+                                  </span>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Action buttons */}
+                            <div className="flex flex-wrap gap-2 pt-1">
+                              {googleMapsUrl && (
+                                <a
+                                  href={googleMapsUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn-ghost px-3 py-1.5 text-xs flex items-center gap-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                                  Get Directions
+                                </a>
+                              )}
+                              {helpline && (
+                                <a
+                                  href={`tel:${helpline}`}
+                                  className="btn-ghost px-3 py-1.5 text-xs flex items-center gap-1.5 border-teal-200 text-teal-700"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
+                                  Call Helpline
+                                </a>
+                              )}
+                              {website && (
+                                <a
+                                  href={website}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="btn-ghost px-3 py-1.5 text-xs flex items-center gap-1.5"
+                                  onClick={(e) => e.stopPropagation()}
+                                >
+                                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
+                                  Website
+                                </a>
+                              )}
+                            </div>
+                          </div>
+                        );
+                      })()}
+
                       <div className="flex items-center justify-between mb-4">
                         <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                           {clinic.doctors.length} doctor{clinic.doctors.length !== 1 ? "s" : ""} available
