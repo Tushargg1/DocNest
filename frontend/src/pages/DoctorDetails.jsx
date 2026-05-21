@@ -11,6 +11,8 @@ function DoctorDetails() {
   const [doctor, setDoctor] = useState(null);
   const [slots, setSlots] = useState([]);
   const [reviews, setReviews] = useState([]);
+  const [degrees, setDegrees] = useState([]);
+  const [showCerts, setShowCerts] = useState(false);
   const [date, setDate] = useState(new Date().toISOString().slice(0, 10));
   const [loading, setLoading] = useState(true);
   const [slotsLoading, setSlotsLoading] = useState(false);
@@ -56,7 +58,14 @@ function DoctorDetails() {
     } catch { /* ignore */ }
   };
 
-  useEffect(() => { fetchDoctor(); checkFavorite(); fetchReviews(); }, [doctorUserId]);
+  const fetchDegrees = async () => {
+    try {
+      const { data } = await api.get(`/doctors/${doctorUserId}/degrees`);
+      setDegrees(data || []);
+    } catch { /* ignore */ }
+  };
+
+  useEffect(() => { fetchDoctor(); checkFavorite(); fetchReviews(); fetchDegrees(); }, [doctorUserId]);
   useEffect(() => { fetchSlots(); }, [doctorUserId, date]);
 
   const toggleFavorite = async () => {
@@ -363,8 +372,46 @@ function DoctorDetails() {
               </div>
             </div>
           )}
+          {/* Certifications button */}
+          {degrees.some(d => d.certificateUrl) && (
+            <div className="frost-card rounded-xl p-4">
+              <button
+                onClick={() => setShowCerts(true)}
+                className="btn-ghost w-full py-2.5 text-sm font-medium"
+              >
+                View Certifications ({degrees.filter(d => d.certificateUrl).length})
+              </button>
+            </div>
+          )}
         </aside>
       </div>
+
+      {/* Certifications Modal */}
+      {showCerts && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50" onClick={() => setShowCerts(false)}>
+          <div className="relative w-full max-w-2xl max-h-[85vh] overflow-y-auto bg-white rounded-xl shadow-2xl p-6" onClick={(e) => e.stopPropagation()}>
+            <button onClick={() => setShowCerts(false)} className="absolute top-4 right-4 text-slate-400 hover:text-slate-700 text-lg font-bold">✕</button>
+            <h2 className="text-lg font-bold text-slate-900 mb-4">Doctor Certifications</h2>
+            <div className="space-y-4">
+              {degrees.filter(d => d.certificateUrl).map((deg) => (
+                <div key={deg.id} className="border border-slate-200 rounded-lg overflow-hidden">
+                  <div className="bg-slate-50 px-4 py-2 border-b border-slate-200">
+                    <p className="font-semibold text-sm text-slate-800">{deg.degreeName}</p>
+                    <p className="text-xs text-slate-500">{deg.institute} ({deg.yearOfCompletion})</p>
+                  </div>
+                  <div className="p-2">
+                    <img
+                      src={deg.certificateUrl}
+                      alt={`${deg.degreeName} certificate`}
+                      className="w-full rounded-lg object-contain max-h-96"
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

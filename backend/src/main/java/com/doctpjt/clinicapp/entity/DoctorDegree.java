@@ -32,4 +32,7 @@ public class DoctorDegree {
     @Min(1900)
     @Max(2100)
     private Integer yearOfCompletion;
+
+    @jakarta.persistence.Column(columnDefinition = "LONGTEXT")
+    private String certificateUrl;
 }

@@ -887,14 +887,47 @@ function Profile() {
                 <h3 className="text-lg font-bold text-slate-900 mb-5 flex items-center gap-2">
                   <div className="h-2 w-2 rounded-full bg-teal-500" /> Qualifications & Degrees
                 </h3>
-                <div className="flex flex-wrap gap-2 mb-4">
+                <div className="space-y-3 mb-4">
                   {doctorDegrees.length === 0 && (
                     <p className="text-sm text-slate-400 italic">No degrees added yet.</p>
                   )}
                   {doctorDegrees.map((deg) => (
-                    <span key={deg.id} className="text-xs font-bold bg-teal-50 text-teal-700 border border-teal-200 px-3 py-1 rounded-full">
-                      {deg.degreeName}
-                    </span>
+                    <div key={deg.id} className="flex items-center justify-between gap-3 p-3 rounded-lg border border-slate-200 bg-slate-50">
+                      <div>
+                        <p className="text-sm font-semibold text-slate-800">{deg.degreeName}</p>
+                        <p className="text-xs text-slate-500">{deg.institute} ({deg.yearOfCompletion})</p>
+                      </div>
+                      <div className="flex items-center gap-2">
+                        {deg.certificateUrl ? (
+                          <span className="text-xs text-teal-600 font-medium">Uploaded</span>
+                        ) : (
+                          <span className="text-xs text-slate-400">No certificate</span>
+                        )}
+                        <label className="btn-ghost px-3 py-1.5 text-xs cursor-pointer">
+                          {deg.certificateUrl ? "Replace" : "Upload"}
+                          <input
+                            type="file"
+                            accept="image/*,.pdf"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files[0];
+                              if (!file) return;
+                              const reader = new FileReader();
+                              reader.onload = async () => {
+                                try {
+                                  const { data } = await api.patch(`/doctors/degrees/${deg.id}/certificate`, { certificateUrl: reader.result });
+                                  setDoctorDegrees(prev => prev.map(d => d.id === deg.id ? data : d));
+                                  setMessage("Certificate uploaded.");
+                                } catch {
+                                  setMessage("Upload failed.");
+                                }
+                              };
+                              reader.readAsDataURL(file);
+                            }}
+                          />
+                        </label>
+                      </div>
+                    </div>
                   ))}
                 </div>
                 <form onSubmit={handleAddDegree} className="flex gap-3">

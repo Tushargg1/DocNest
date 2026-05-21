@@ -19,6 +19,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -145,6 +146,15 @@ public class DoctorController {
     @GetMapping("/{doctorUserId}/degrees")
     public List<DoctorDegree> getDegrees(@PathVariable Long doctorUserId) {
         return doctorDegreeRepository.findByDoctorUserId(doctorUserId);
+    }
+
+    @PatchMapping("/degrees/{degreeId}/certificate")
+    @PreAuthorize("hasRole('ADMIN') or hasRole('DOCTOR')")
+    public DoctorDegree uploadCertificate(@PathVariable Long degreeId, @RequestBody java.util.Map<String, String> body) {
+        DoctorDegree degree = doctorDegreeRepository.findById(degreeId)
+            .orElseThrow(() -> new IllegalArgumentException("Degree not found"));
+        degree.setCertificateUrl(body.get("certificateUrl"));
+        return doctorDegreeRepository.save(degree);
     }
 
     @PostMapping("/{doctorUserId}/ratings")
