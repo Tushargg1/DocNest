@@ -20,6 +20,7 @@ import HealthIntake from "./pages/HealthIntake";
 import Notifications from "./pages/Notifications";
 import PatientConsent from "./pages/PatientConsent";
 import MyMedicines from "./pages/MyMedicines";
+import HealthIntakeReminder from "./components/HealthIntakeReminder";
 
 function App() {
   return (
@@ -127,6 +128,7 @@ function App() {
         </Routes>
       </main>
       <Footer />
+      <HealthIntakeReminder />
     </div>
   );
 }

@@ -65,11 +65,6 @@ function TopNav() {
             </NavLink>
           )}
           {session?.role === "PATIENT" && (
-            <NavLink to="/intake" className={navClass}>
-              {t("nav.healthProfile")}
-            </NavLink>
-          )}
-          {session?.role === "PATIENT" && (
             <NavLink to="/consent" className={navClass}>
               Consent
             </NavLink>
@@ -170,9 +165,6 @@ function TopNav() {
             )}
             {session?.role === "PATIENT" && (
               <NavLink to="/symptoms" className={navClass} onClick={() => setMenuOpen(false)}>{t("nav.symptoms")}</NavLink>
-            )}
-            {session?.role === "PATIENT" && (
-              <NavLink to="/intake" className={navClass} onClick={() => setMenuOpen(false)}>{t("nav.healthProfile")}</NavLink>
             )}
             {session?.role === "PATIENT" && (
               <NavLink to="/consent" className={navClass} onClick={() => setMenuOpen(false)}>Consent</NavLink>

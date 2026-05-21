@@ -76,6 +76,10 @@ public class SecurityConfig {
             "https://doc-nest.vercel.app",
             "https://docnest-3-v5sy.onrender.com"
         ));
+        configuration.setAllowedOriginPatterns(List.of(
+            "https://*.vercel.app",
+            "http://localhost:*"
+        ));
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("Authorization", "Content-Type", "Accept"));
         configuration.setAllowCredentials(true);
