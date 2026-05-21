@@ -24,3 +24,6 @@ qa-reports/
 
 # Logs
 *.log
+
+# Uploads
+uploads/

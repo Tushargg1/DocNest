@@ -45,9 +45,13 @@ public class DoctorProfile {
 
     private String roomId;
 
+    private String registrationNumber;
+
     private Integer age;
 
     private String gender;
 
     private String occupation;
+
+    private Double consultationFee = 500.0;
 }

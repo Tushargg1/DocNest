@@ -3,6 +3,7 @@ package com.doctpjt.clinicapp.service;
 import com.doctpjt.clinicapp.dto.AppointmentDtos.AppointmentResponse;
 import com.doctpjt.clinicapp.dto.AppointmentDtos.AvailableSlotsResponse;
 import com.doctpjt.clinicapp.dto.AppointmentDtos.BookAppointmentRequest;
+import com.doctpjt.clinicapp.dto.AppointmentDtos.RescheduleRequest;
 import com.doctpjt.clinicapp.dto.AppointmentDtos.ReviewRequest;
 import com.doctpjt.clinicapp.entity.Appointment;
 import com.doctpjt.clinicapp.entity.AppointmentStatus;
@@ -10,11 +11,13 @@ import com.doctpjt.clinicapp.entity.Clinic;
 import com.doctpjt.clinicapp.entity.DoctorApprovalStatus;
 import com.doctpjt.clinicapp.entity.DoctorProfile;
 import com.doctpjt.clinicapp.entity.Rating;
+import com.doctpjt.clinicapp.entity.User;
 import com.doctpjt.clinicapp.repository.ClinicRepository;
 import com.doctpjt.clinicapp.repository.AppointmentRepository;
 import com.doctpjt.clinicapp.repository.DoctorLeaveRepository;
 import com.doctpjt.clinicapp.repository.DoctorProfileRepository;
 import com.doctpjt.clinicapp.repository.RatingRepository;
+import com.doctpjt.clinicapp.repository.UserRepository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -32,13 +35,21 @@ public class AppointmentService {
     private final ClinicRepository clinicRepository;
     private final RatingRepository ratingRepository;
     private final DoctorLeaveRepository doctorLeaveRepository;
+    private final UserRepository userRepository;
+    private final NotificationService notificationService;
+    private final EmailService emailService;
+    private final SmsService smsService;
 
-    public AppointmentService(AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository, ClinicRepository clinicRepository, RatingRepository ratingRepository, DoctorLeaveRepository doctorLeaveRepository) {
+    public AppointmentService(AppointmentRepository appointmentRepository, DoctorProfileRepository doctorProfileRepository, ClinicRepository clinicRepository, RatingRepository ratingRepository, DoctorLeaveRepository doctorLeaveRepository, UserRepository userRepository, NotificationService notificationService, EmailService emailService, SmsService smsService) {
         this.appointmentRepository = appointmentRepository;
         this.doctorProfileRepository = doctorProfileRepository;
         this.clinicRepository = clinicRepository;
         this.ratingRepository = ratingRepository;
         this.doctorLeaveRepository = doctorLeaveRepository;
+        this.userRepository = userRepository;
+        this.notificationService = notificationService;
+        this.emailService = emailService;
+        this.smsService = smsService;
     }
 
     public AvailableSlotsResponse getAvailableSlots(Long doctorUserId, LocalDate date) {
@@ -119,6 +130,31 @@ public class AppointmentService {
         appointment.setStatus(AppointmentStatus.BOOKED);
 
         Appointment saved = appointmentRepository.save(appointment);
+
+        // Create appointment reminder notification for the patient
+        try {
+            String doctorName = userRepository.findById(request.doctorUserId())
+                .map(User::getFullName)
+                .orElse("your doctor");
+            notificationService.createAppointmentReminder(request.patientUserId(), doctorName, saved.getStartTime());
+
+            // Send email and SMS notifications (async, fire-and-forget)
+            User patient = userRepository.findById(request.patientUserId()).orElse(null);
+            if (patient != null) {
+                emailService.sendAppointmentConfirmation(
+                    patient.getEmail(), patient.getFullName(), doctorName,
+                    clinic.getName(), saved.getStartTime(),
+                    saved.getTokenNumber(), saved.getCheckInCode()
+                );
+                smsService.sendAppointmentConfirmation(
+                    patient.getPhoneNumber(), patient.getFullName(), doctorName,
+                    saved.getStartTime(), saved.getTokenNumber()
+                );
+            }
+        } catch (Exception ignored) {
+            // Notification failure should not break booking
+        }
+
         return toResponse(saved);
     }
 
@@ -159,6 +195,28 @@ public class AppointmentService {
 
         appointment.setStatus(AppointmentStatus.CANCELLED);
         Appointment saved = appointmentRepository.save(appointment);
+
+        // Send cancellation notifications (async, fire-and-forget)
+        try {
+            User patient = userRepository.findById(appointment.getPatientUserId()).orElse(null);
+            String doctorName = userRepository.findById(appointment.getDoctorUserId())
+                .map(User::getFullName).orElse("your doctor");
+            String clinicName = clinicRepository.findById(appointment.getClinicId())
+                .map(Clinic::getName).orElse("the clinic");
+            if (patient != null) {
+                emailService.sendAppointmentCancellation(
+                    patient.getEmail(), patient.getFullName(), doctorName,
+                    clinicName, appointment.getStartTime()
+                );
+                smsService.sendAppointmentCancellation(
+                    patient.getPhoneNumber(), patient.getFullName(), doctorName,
+                    appointment.getStartTime()
+                );
+            }
+        } catch (Exception ignored) {
+            // Notification failure should not block cancellation
+        }
+
         return toResponse(saved);
     }
 
@@ -289,5 +347,84 @@ public class AppointmentService {
         }
         if (!stale.isEmpty()) appointmentRepository.saveAll(stale);
         return stale.size();
+    }
+
+    /**
+     * Reschedule a BOOKED appointment to a new time slot.
+     * Only the patient who booked or an admin can reschedule.
+     */
+    public AppointmentResponse rescheduleAppointment(Long appointmentId, Long requesterUserId, boolean admin, RescheduleRequest request) {
+        Appointment appointment = appointmentRepository.findById(appointmentId)
+            .orElseThrow(() -> new IllegalArgumentException("Appointment not found"));
+
+        if (!admin && !appointment.getPatientUserId().equals(requesterUserId)) {
+            throw new IllegalArgumentException("You can only reschedule your own appointment");
+        }
+
+        if (appointment.getStatus() != AppointmentStatus.BOOKED) {
+            throw new IllegalArgumentException("Only booked appointments can be rescheduled. Current status: " + appointment.getStatus());
+        }
+
+        LocalDateTime newStartTime = request.newStartTime();
+        LocalDate newDate = newStartTime.toLocalDate();
+
+        // Validate the new date is not in the past
+        if (newDate.isBefore(LocalDate.now())) {
+            throw new IllegalArgumentException("Cannot reschedule to a past date");
+        }
+
+        // Validate the new time is not in the past (for today)
+        if (newStartTime.isBefore(LocalDateTime.now().plusMinutes(15))) {
+            throw new IllegalArgumentException("New time must be at least 15 minutes from now");
+        }
+
+        Long doctorUserId = appointment.getDoctorUserId();
+
+        // Check if doctor is on leave on the new date
+        if (doctorLeaveRepository.existsByDoctorUserIdAndLeaveDate(doctorUserId, newDate)) {
+            throw new IllegalArgumentException("Doctor is on leave on the selected date");
+        }
+
+        // Check for slot conflict with existing appointments
+        if (appointmentRepository.existsByDoctorUserIdAndStartTimeAndStatus(doctorUserId, newStartTime, AppointmentStatus.BOOKED)) {
+            throw new IllegalArgumentException("Selected time slot is already booked");
+        }
+
+        // Get slot duration from doctor profile
+        DoctorProfile doctor = doctorProfileRepository.findByUserId(doctorUserId)
+            .orElseThrow(() -> new IllegalArgumentException("Doctor profile not found"));
+        int slotDuration = doctor.getSlotDurationMinutes() == null ? 20 : doctor.getSlotDurationMinutes();
+
+        // Update appointment
+        LocalDateTime oldStartTime = appointment.getStartTime();
+        appointment.setStartTime(newStartTime);
+        appointment.setEndTime(newStartTime.plusMinutes(slotDuration));
+        Appointment saved = appointmentRepository.save(appointment);
+
+        // Create reschedule confirmation notification
+        try {
+            String doctorName = userRepository.findById(doctorUserId)
+                .map(User::getFullName)
+                .orElse("your doctor");
+            notificationService.createRescheduleNotification(appointment.getPatientUserId(), doctorName, newStartTime);
+
+            // Send email and SMS reschedule notifications (async, fire-and-forget)
+            User patient = userRepository.findById(appointment.getPatientUserId()).orElse(null);
+            String clinicName = clinicRepository.findById(appointment.getClinicId())
+                .map(Clinic::getName).orElse("the clinic");
+            if (patient != null) {
+                emailService.sendAppointmentReschedule(
+                    patient.getEmail(), patient.getFullName(), doctorName,
+                    clinicName, oldStartTime, newStartTime
+                );
+                smsService.sendAppointmentReschedule(
+                    patient.getPhoneNumber(), patient.getFullName(), doctorName, newStartTime
+                );
+            }
+        } catch (Exception ignored) {
+            // Notification failure should not break rescheduling
+        }
+
+        return toResponse(saved);
     }
 }

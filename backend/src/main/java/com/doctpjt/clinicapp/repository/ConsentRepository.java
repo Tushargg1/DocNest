@@ -62,4 +62,12 @@ public interface ConsentRepository extends JpaRepository<Consent, Long> {
         @Param("activeStatus") ConsentStatus activeStatus,
         @Param("expiredStatus") ConsentStatus expiredStatus
     );
+
+    List<Consent> findByPatientIdAndStatus(Long patientId, ConsentStatus status);
+
+    List<Consent> findByPatientIdAndStatusAndExpiryTimeGreaterThanEqual(
+        Long patientId, ConsentStatus status, LocalDateTime now);
+
+    List<Consent> findByDoctorIdAndPatientIdAndStatusIn(
+        Long doctorId, Long patientId, List<ConsentStatus> statuses);
 }

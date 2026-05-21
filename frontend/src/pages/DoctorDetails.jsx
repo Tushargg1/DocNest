@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import DoctorWeekCalendar from "../components/DoctorWeekCalendar";
 
 function DoctorDetails() {
   const { doctorUserId } = useParams();
@@ -211,6 +212,12 @@ function DoctorDetails() {
             <p className="text-slate-600 leading-relaxed">
               {doctor.bio || "Dr. " + doctor.doctorName + " is a qualified " + doctor.specialization + " specialist available for consultations."}
             </p>
+          </div>
+
+          {/* Weekly Availability Overview */}
+          <div className="frost-card rounded-2xl p-7">
+            <h3 className="text-xs font-black uppercase tracking-widest text-teal-600 mb-4">Availability This Week</h3>
+            <DoctorWeekCalendar doctorUserId={Number(doctorUserId)} compact />
           </div>
 
           {/* Qualifications */}

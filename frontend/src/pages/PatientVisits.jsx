@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import { useLanguage } from "../context/LanguageContext";
 import AppointmentQR from "../components/AppointmentQR";
+import RescheduleModal from "../components/RescheduleModal";
 
 function PatientVisits() {
   const { session } = useAuth();
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [visits, setVisits] = useState([]);
   const [appointments, setAppointments] = useState([]);
@@ -14,10 +17,13 @@ function PatientVisits() {
   const [reviewForm, setReviewForm] = useState({ show: false, apptId: null, doctorName: "", attended: null, rating: 5, comment: "" });
   const [reviewMsg, setReviewMsg] = useState("");
   const [qrAppointment, setQrAppointment] = useState(null);
+  const [rescheduleAppointment, setRescheduleAppointment] = useState(null);
   const [activeTab, setActiveTab] = useState("upcoming");
   const [favorites, setFavorites] = useState([]);
   const [detailModal, setDetailModal] = useState(null);
   const [doctorCache, setDoctorCache] = useState({});
+  const [uploadProgress, setUploadProgress] = useState({});
+  const [paymentStatuses, setPaymentStatuses] = useState({});
 
   useEffect(() => {
     const load = async () => {
@@ -50,6 +56,24 @@ function PatientVisits() {
     };
     load();
   }, [session]);
+
+  // Fetch payment statuses for all appointments
+  useEffect(() => {
+    const fetchPayments = async () => {
+      if (appointments.length === 0) return;
+      const statuses = {};
+      await Promise.allSettled(
+        appointments.map(async (appt) => {
+          try {
+            const { data } = await api.get(`/payments/appointment/${appt.appointmentId || appt.id}`);
+            if (data) statuses[appt.appointmentId || appt.id] = data;
+          } catch { /* no payment record */ }
+        })
+      );
+      setPaymentStatuses(statuses);
+    };
+    fetchPayments();
+  }, [appointments]);
 
   const fetchDoctorDetails = async (doctorUserId) => {
     if (!doctorUserId) return null;
@@ -194,10 +218,10 @@ function PatientVisits() {
       {/* Page Header */}
       <div className="flex flex-wrap items-start justify-between gap-4 mb-8">
         <div>
-          <p className="section-label">Patient Dashboard</p>
-          <h1 className="page-title text-4xl mt-1">My Health Records</h1>
+          <p className="section-label">{t("patient.dashboard")}</p>
+          <h1 className="page-title text-4xl mt-1">{t("patient.myHealthRecords")}</h1>
           <p className="mt-2 text-slate-500">
-            Track appointments, view prescriptions, and manage your complete health journey.
+            {t("patient.trackDescription")}
           </p>
         </div>
         <div className="flex gap-2 flex-wrap">
@@ -220,11 +244,11 @@ function PatientVisits() {
               }}
               className="brand-btn-outline px-4 py-2.5 text-xs"
             >
-              📄 Export PDF
+              {t("patient.exportPdf")}
             </button>
           )}
           <Link to="/nearby" className="brand-btn px-5 py-2.5 text-xs">
-            + Book New Appointment
+            + {t("patient.bookNewAppointment")}
           </Link>
         </div>
       </div>
@@ -239,19 +263,19 @@ function PatientVisits() {
       <div className="grid gap-4 grid-cols-2 md:grid-cols-4 mb-8">
         <div className="frost-card rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-teal-600">{activeTokens.length + upcomingAppointments.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Upcoming</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">{t("patient.upcoming")}</p>
         </div>
         <div className="frost-card rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-emerald-600">{attendedAppointments.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Attended</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">{t("patient.attended")}</p>
         </div>
         <div className="frost-card rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-slate-700">{visits.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Visit Records</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">{t("patient.visitRecords")}</p>
         </div>
         <div className="frost-card rounded-2xl p-4 text-center">
           <p className="text-3xl font-black text-rose-500">{favorites.length}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">Favorites</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-slate-400 mt-1">{t("patient.favorites")}</p>
         </div>
       </div>
 
@@ -261,9 +285,9 @@ function PatientVisits() {
           <div className="flex items-start gap-4">
             <span className="text-3xl">⏰</span>
             <div className="flex-1">
-              <p className="font-black text-amber-800 text-lg">Follow-up Reminder</p>
+              <p className="font-black text-amber-800 text-lg">{t("patient.followUpReminder")}</p>
               <p className="text-sm text-amber-700 mt-1">
-                You have a doctor follow-up scheduled for <strong>tomorrow</strong>.
+                {t("patient.followUpTomorrow")}
               </p>
               <ul className="mt-2 space-y-1">
                 {revisitReminders.map((v) => (
@@ -273,7 +297,7 @@ function PatientVisits() {
                 ))}
               </ul>
               <Link to="/nearby" className="brand-btn inline-block mt-3 px-5 py-2 text-xs">
-                Book Revisit →
+                {t("patient.bookRevisit")} →
               </Link>
             </div>
           </div>
@@ -285,7 +309,7 @@ function PatientVisits() {
         <section className="mb-8">
           <h2 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
             <span className="h-2 w-2 rounded-full bg-teal-500 animate-pulse" />
-            Today's Appointment
+            {t("patient.todaysAppointment")}
           </h2>
           <div className="space-y-4">
             {activeTokens.map((appt) => (
@@ -293,11 +317,11 @@ function PatientVisits() {
                 <div className="relative z-10">
                   <div className="flex items-center gap-2 mb-4">
                     <div className="h-2 w-2 rounded-full bg-teal-400 animate-pulse" />
-                    <span className="text-xs font-black uppercase tracking-widest text-teal-300">Active • Arrive 15 min early</span>
+                    <span className="text-xs font-black uppercase tracking-widest text-teal-300">{t("patient.activeArriveEarly")}</span>
                   </div>
                   <div className="flex items-end justify-between flex-wrap gap-4">
                     <div>
-                      <p className="text-xs text-white/50 uppercase tracking-wide mb-1">Your Token</p>
+                      <p className="text-xs text-white/50 uppercase tracking-wide mb-1">{t("patient.yourToken")}</p>
                       <div className="token-number">{appt.tokenNumber || "—"}</div>
                     </div>
                     <div className="text-right">
@@ -311,19 +335,25 @@ function PatientVisits() {
                       onClick={() => setQrAppointment(appt)}
                       className="bg-teal-400 hover:bg-teal-300 text-slate-900 px-5 py-2.5 rounded-xl text-xs font-bold transition-all"
                     >
-                      🎫 Show Check-in QR
+                      {t("patient.showCheckinQR")}
                     </button>
                     <button
                       onClick={() => openAppointmentDetail(appt)}
                       className="bg-white/10 hover:bg-white/20 text-white px-5 py-2.5 rounded-xl text-xs font-bold transition-all border border-white/10"
                     >
-                      View Details
+                      {t("patient.viewDetails")}
+                    </button>
+                    <button
+                      onClick={() => setRescheduleAppointment(appt)}
+                      className="bg-white/10 hover:bg-white/20 text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all border border-white/10"
+                    >
+                      {t("patient.reschedule")}
                     </button>
                     <button
                       onClick={() => cancelAppointment(appt.appointmentId || appt.id)}
                       className="bg-white/5 hover:bg-rose-500/20 text-rose-200 hover:text-white px-4 py-2.5 rounded-xl text-xs font-bold transition-all border border-white/10 hover:border-rose-400 ml-auto"
                     >
-                      Cancel
+                      {t("common.cancel")}
                     </button>
                   </div>
                 </div>
@@ -346,8 +376,8 @@ function PatientVisits() {
           <section className="mb-8">
             <div className="frost-card rounded-xl p-6 border-l-4 border-teal-400">
               <div className="mb-3">
-                <p className="font-bold text-slate-900">Rate Your Recent Visit</p>
-                <p className="text-xs text-slate-500 mt-0.5">You can review appointments where your visit was recorded and prescription uploaded.</p>
+                <p className="font-bold text-slate-900">{t("patient.rateVisit")}</p>
+                <p className="text-xs text-slate-500 mt-0.5">{t("patient.rateVisitDesc")}</p>
               </div>
               <div className="flex gap-2 flex-wrap">
                 {reviewableAppts.slice(0, 3).map((appt) => {
@@ -381,7 +411,7 @@ function PatientVisits() {
       {favorites.length > 0 && (
         <section className="mb-8">
           <h2 className="text-lg font-black text-slate-900 mb-4 flex items-center gap-2">
-            ❤️ Favorite Doctors
+            {t("patient.favoriteDoctors")}
             <span className="text-xs font-medium text-slate-400 ml-1">({favorites.length})</span>
           </h2>
           <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
@@ -406,7 +436,7 @@ function PatientVisits() {
                   onClick={() => rebookAppointment(fav.doctorUserId, fav.clinicId)}
                   className="brand-btn px-3 py-1.5 text-[10px] shrink-0"
                 >
-                  Book
+                  {t("patient.book")}
                 </button>
               </article>
             ))}
@@ -417,15 +447,15 @@ function PatientVisits() {
       {/* Appointments Tabs */}
       <section className="mb-8">
         <div className="flex items-center justify-between mb-4 flex-wrap gap-3">
-          <h2 className="text-lg font-black text-slate-900">Appointments</h2>
+          <h2 className="text-lg font-black text-slate-900">{t("patient.appointmentsTitle")}</h2>
         </div>
         {/* Pill Tabs */}
         <div className="flex gap-1.5 p-1 bg-slate-100 rounded-xl mb-5 overflow-x-auto">
           {[
-            { id: "upcoming", label: "Upcoming", count: upcomingAppointments.length + activeTokens.length },
-            { id: "attended", label: "Attended", count: attendedAppointments.length },
-            { id: "missed", label: "Missed", count: missedAppointments.length },
-            { id: "cancelled", label: "Cancelled", count: cancelledAppointments.length },
+            { id: "upcoming", label: t("patient.upcoming"), count: upcomingAppointments.length + activeTokens.length },
+            { id: "attended", label: t("patient.attended"), count: attendedAppointments.length },
+            { id: "missed", label: t("patient.missed"), count: missedAppointments.length },
+            { id: "cancelled", label: t("patient.cancelled"), count: cancelledAppointments.length },
           ].map((tab) => (
             <button
               key={tab.id}
@@ -460,10 +490,10 @@ function PatientVisits() {
 
             if (list.length === 0) {
               const emptyStates = {
-                upcoming: { icon: "📅", text: "No upcoming appointments", sub: "Book a new appointment to get started" },
-                attended: { icon: "✅", text: "No attended visits yet", sub: "Your completed visits will appear here" },
-                missed: { icon: "🎉", text: "No missed appointments", sub: "Great — you haven't missed any" },
-                cancelled: { icon: "📋", text: "No cancelled appointments", sub: "Nothing to show here" },
+                upcoming: { icon: "📅", text: t("patient.noUpcoming"), sub: t("patient.noUpcomingSub") },
+                attended: { icon: "✅", text: t("patient.noAttended"), sub: t("patient.noAttendedSub") },
+                missed: { icon: "🎉", text: t("patient.noMissed"), sub: t("patient.noMissedSub") },
+                cancelled: { icon: "📋", text: t("patient.noCancelled"), sub: t("patient.noCancelledSub") },
               };
               const empty = emptyStates[activeTab];
               return (
@@ -473,7 +503,7 @@ function PatientVisits() {
                   <p className="text-xs text-slate-400 mt-1">{empty.sub}</p>
                   {activeTab === "upcoming" && (
                     <Link to="/nearby" className="brand-btn inline-block mt-4 px-5 py-2 text-xs">
-                      Find Doctors →
+                      {t("patient.findDoctors")} →
                     </Link>
                   )}
                 </div>
@@ -518,6 +548,28 @@ function PatientVisits() {
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${statusStyles[appt.status] || "bg-slate-50 text-slate-500"}`}>
                         {statusLabel[appt.status] || appt.status}
                       </span>
+                      {/* Payment Status Badge */}
+                      {(() => {
+                        const payment = paymentStatuses[appt.appointmentId || appt.id];
+                        if (!payment) return null;
+                        const payBadgeStyles = {
+                          COMPLETED: "bg-emerald-50 text-emerald-700 border-emerald-200",
+                          PENDING: "bg-amber-50 text-amber-700 border-amber-200",
+                          REFUNDED: "bg-slate-100 text-slate-600 border-slate-200",
+                          FAILED: "bg-rose-50 text-rose-700 border-rose-200",
+                        };
+                        const payBadgeLabels = {
+                          COMPLETED: "Paid",
+                          PENDING: "Payment Pending",
+                          REFUNDED: "Refunded",
+                          FAILED: "Payment Failed",
+                        };
+                        return (
+                          <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border ${payBadgeStyles[payment.status] || ""}`}>
+                            {payBadgeLabels[payment.status] || payment.status}
+                          </span>
+                        );
+                      })()}
                     </div>
                     <p className="text-xs text-slate-500 mt-0.5">
                       {formatDateTime(appt.startTime)}
@@ -532,6 +584,12 @@ function PatientVisits() {
                           className="btn-ghost px-3 py-1.5 text-xs opacity-0 group-hover:opacity-100 transition-opacity"
                         >
                           🎫 QR
+                        </button>
+                        <button
+                          onClick={() => setRescheduleAppointment(appt)}
+                          className="text-xs text-teal-600 hover:text-teal-800 font-bold opacity-0 group-hover:opacity-100 transition-opacity"
+                        >
+                          Reschedule
                         </button>
                         <button
                           onClick={() => cancelAppointment(appt.appointmentId || appt.id)}
@@ -556,7 +614,7 @@ function PatientVisits() {
       <section>
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-black text-slate-900 flex items-center gap-2">
-            📋 Visit History
+            {t("patient.visitHistory")}
             <span className="text-xs font-medium text-slate-400">({visits.length})</span>
           </h2>
         </div>
@@ -576,7 +634,7 @@ function PatientVisits() {
                   </div>
                   {visit.revisitDate && (
                     <div className="text-right">
-                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">Follow-up</p>
+                      <p className="text-[10px] font-black uppercase tracking-widest text-amber-600">{t("patient.followUp")}</p>
                       <p className="text-sm font-bold text-amber-700">{formatDate(visit.revisitDate)}</p>
                     </div>
                   )}
@@ -586,13 +644,13 @@ function PatientVisits() {
                   <div className="mt-4 grid gap-3 sm:grid-cols-2">
                     {visit.medications && (
                       <div className="rx-card">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-teal-500 mb-1">Medications</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-teal-500 mb-1">{t("patient.medications")}</p>
                         <p className="text-sm text-slate-700">{visit.medications}</p>
                       </div>
                     )}
                     {visit.diseaseHistory && (
                       <div className="rx-card">
-                        <p className="text-[10px] font-black uppercase tracking-widest text-teal-500 mb-1">Notes</p>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-teal-500 mb-1">{t("patient.notes")}</p>
                         <p className="text-sm text-slate-700">{visit.diseaseHistory}</p>
                       </div>
                     )}
@@ -620,47 +678,79 @@ function PatientVisits() {
                     }}
                     className="btn-ghost px-3 py-1.5 text-xs"
                   >
-                    ⬇ Download Rx PDF
+                    {t("patient.downloadRxPdf")}
                   </button>
                   {visit.prescriptionPhotoUrl && (
                     <a
-                      href={visit.prescriptionPhotoUrl}
+                      href={`http://localhost:8085${visit.prescriptionPhotoUrl}`}
                       target="_blank"
                       rel="noreferrer"
                       className="btn-ghost px-3 py-1.5 text-xs"
                     >
-                      👁 View Photo
+                      {t("patient.viewPhoto")}
                     </a>
                   )}
                   <label
                     htmlFor={`rx-upload-${visit.id}`}
                     className="btn-ghost px-3 py-1.5 text-xs cursor-pointer"
                   >
-                    📷 {visit.prescriptionPhotoUrl ? "Replace" : "Upload"} Photo
+                    {visit.prescriptionPhotoUrl ? t("common.replace") : t("common.upload")}
                   </label>
                   <input
                     type="file"
-                    accept="image/*,.pdf"
+                    accept="image/jpeg,image/png,image/jpg,application/pdf"
                     className="hidden"
                     id={`rx-upload-${visit.id}`}
                     onChange={async (e) => {
                       const file = e.target.files[0];
                       if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = async () => {
-                        try {
-                          await api.patch(`/visits/${visit.id}/prescription`, {
-                            prescriptionPhotoUrl: reader.result,
-                          });
-                          const { data } = await api.get(`/visits/patient/${session.userId}`);
-                          setVisits(data || []);
-                        } catch {
-                          alert("Upload failed. Please try again.");
-                        }
-                      };
-                      reader.readAsDataURL(file);
+                      if (file.size > 5 * 1024 * 1024) {
+                        alert("File size exceeds 5MB limit.");
+                        return;
+                      }
+                      try {
+                        setUploadProgress((prev) => ({ ...prev, [visit.id]: 0 }));
+                        const formData = new FormData();
+                        formData.append("file", file);
+                        const uploadRes = await api.post("/uploads/prescription", formData, {
+                          headers: { "Content-Type": "multipart/form-data" },
+                          onUploadProgress: (progressEvent) => {
+                            const percent = Math.round(
+                              (progressEvent.loaded * 100) / progressEvent.total
+                            );
+                            setUploadProgress((prev) => ({ ...prev, [visit.id]: percent }));
+                          },
+                        });
+                        const fileUrl = uploadRes.data.url;
+                        await api.patch(`/visits/${visit.id}/prescription`, {
+                          prescriptionPhotoUrl: fileUrl,
+                        });
+                        const { data } = await api.get(`/visits/patient/${session.userId}`);
+                        setVisits(data || []);
+                      } catch {
+                        alert("Upload failed. Please try again.");
+                      } finally {
+                        setUploadProgress((prev) => {
+                          const copy = { ...prev };
+                          delete copy[visit.id];
+                          return copy;
+                        });
+                      }
                     }}
                   />
+                  {uploadProgress[visit.id] !== undefined && (
+                    <div className="flex items-center gap-2 ml-2">
+                      <div className="w-24 h-1.5 bg-slate-200 rounded-full overflow-hidden">
+                        <div
+                          className="h-full bg-teal-500 rounded-full transition-all duration-200"
+                          style={{ width: `${uploadProgress[visit.id]}%` }}
+                        />
+                      </div>
+                      <span className="text-[10px] font-bold text-slate-500">
+                        {uploadProgress[visit.id]}%
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
             </article>
@@ -684,6 +774,21 @@ function PatientVisits() {
       {/* QR Code Modal */}
       {qrAppointment && (
         <AppointmentQR appointment={qrAppointment} onClose={() => setQrAppointment(null)} />
+      )}
+
+      {/* Reschedule Modal */}
+      {rescheduleAppointment && (
+        <RescheduleModal
+          appointment={rescheduleAppointment}
+          onClose={() => setRescheduleAppointment(null)}
+          onSuccess={async () => {
+            setRescheduleAppointment(null);
+            try {
+              const { data } = await api.get(`/appointments/patient/${session.userId}`);
+              setAppointments(data || []);
+            } catch {}
+          }}
+        />
       )}
 
       {/* Review Modal */}

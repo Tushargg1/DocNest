@@ -94,6 +94,51 @@ public class ConsentService {
         }
     }
 
+    public Consent denyConsent(Long consentId, Long patientId) {
+        Consent consent = consentRepository.findById(consentId)
+            .orElseThrow(() -> new IllegalArgumentException("Consent request not found"));
+
+        if (!consent.getPatientId().equals(patientId)) {
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "You can only deny your own consent requests");
+        }
+
+        if (consent.getStatus() != ConsentStatus.PENDING) {
+            throw new IllegalArgumentException("Only pending consent can be denied");
+        }
+
+        consent.setStatus(ConsentStatus.REVOKED);
+        consent.setExpiryTime(LocalDateTime.now());
+        return consentRepository.save(consent);
+    }
+
+    public List<Consent> getPendingForPatient(Long patientId) {
+        return consentRepository.findByPatientIdAndStatus(patientId, ConsentStatus.PENDING);
+    }
+
+    public List<Consent> getActiveForPatient(Long patientId) {
+        return consentRepository.findByPatientIdAndStatusAndExpiryTimeGreaterThanEqual(
+            patientId, ConsentStatus.ACTIVE, LocalDateTime.now());
+    }
+
+    public String getConsentStatusForDoctor(Long doctorId, Long patientId) {
+        List<Consent> consents = consentRepository.findByDoctorIdAndPatientIdAndStatusIn(
+            doctorId, patientId, List.of(ConsentStatus.ACTIVE, ConsentStatus.PENDING));
+        LocalDateTime now = LocalDateTime.now();
+        for (Consent c : consents) {
+            if (c.getStatus() == ConsentStatus.ACTIVE
+                && c.getStartTime() != null && c.getExpiryTime() != null
+                && !now.isBefore(c.getStartTime()) && !now.isAfter(c.getExpiryTime())) {
+                return "ACTIVE";
+            }
+        }
+        for (Consent c : consents) {
+            if (c.getStatus() == ConsentStatus.PENDING) {
+                return "PENDING";
+            }
+        }
+        return "NONE";
+    }
+
     @Transactional
     public int revokeAllForPatient(Long patientId) {
         return consentRepository.revokeByPatientIdAndStatusIn(

@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
+import ClinicAnalytics from "../components/ClinicAnalytics";
 
 // Clinic Workspace - now redirects to Profile for clinic management
 // This is the dedicated workspace for clinics showing patients & appointments
@@ -63,6 +64,7 @@ function ClinicWorkspace() {
     { id: "overview", label: "Overview" },
     { id: "doctors", label: "Doctors" },
     { id: "patients", label: "Patients" },
+    { id: "analytics", label: "Analytics" },
   ];
 
   if (loading) {
@@ -442,6 +444,11 @@ function ClinicWorkspace() {
             )}
           </div>
         </div>
+      )}
+
+      {/* Analytics Tab */}
+      {activeTab === "analytics" && (
+        <ClinicAnalytics clinicId={clinic.id} />
       )}
     </div>
   );

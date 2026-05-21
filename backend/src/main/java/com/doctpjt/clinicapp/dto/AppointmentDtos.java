@@ -43,4 +43,9 @@ public class AppointmentDtos {
         Integer rating,   // 1–5 stars
         String comment
     ) {}
+
+    public record RescheduleRequest(
+        @NotNull(message = "New start time is required")
+        LocalDateTime newStartTime
+    ) {}
 }

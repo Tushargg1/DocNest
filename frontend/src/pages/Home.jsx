@@ -165,7 +165,7 @@ function Home() {
         <div className="text-center mb-10 fade-up">
           <p className="section-label">Platform Features</p>
           <h2 className="section-title mt-2">Everything You Need</h2>
-          <p className="mt-3 text-slate-500 max-w-xl mx-auto">
+          <p className="mt-3 text-slate-500 dark:text-slate-400 max-w-xl mx-auto">
             Designed for the complete patient journey — from discovering a clinic to uploading your prescription.
           </p>
         </div>
@@ -179,8 +179,8 @@ function Home() {
               <div className={`h-12 w-12 rounded-2xl ${feat.color} flex items-center justify-center mb-5`}>
                 {feat.icon}
               </div>
-              <h3 className="text-lg font-bold text-slate-900 mb-2">{feat.title}</h3>
-              <p className="text-sm text-slate-500 leading-relaxed">{feat.desc}</p>
+              <h3 className="text-lg font-bold text-slate-900 dark:text-slate-100 mb-2">{feat.title}</h3>
+              <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{feat.desc}</p>
             </article>
           ))}
         </div>
@@ -190,10 +190,10 @@ function Home() {
       {!session && (
         <section className="shell py-6 fade-up">
           <div className="frost-card-dark rounded-xl p-10 md:p-14 text-center">
-            <h2 className="text-3xl md:text-4xl font-black text-white">
-              Ready to take control of your <span className="text-teal-400">health?</span>
+            <h2 className="text-3xl md:text-4xl font-black text-slate-900 dark:text-slate-100">
+              Ready to take control of your <span className="text-teal-600 dark:text-teal-400">health?</span>
             </h2>
-            <p className="mt-4 text-slate-400 max-w-md mx-auto">
+            <p className="mt-4 text-slate-500 dark:text-slate-400 max-w-md mx-auto">
               Register with just your name and phone number. Add email later if you want.
             </p>
             <div className="mt-8 flex flex-wrap gap-4 justify-center">

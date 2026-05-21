@@ -1,7 +1,9 @@
 import { useEffect, useState } from "react";
 import api from "../services/api";
+import consentApi from "../services/consentApi";
 import { useAuth } from "../context/AuthContext";
 import QRScanner from "../components/QRScanner";
+import DoctorWeekCalendar from "../components/DoctorWeekCalendar";
 
 function DoctorWorkspace() {
   const { session } = useAuth();
@@ -20,6 +22,8 @@ function DoctorWorkspace() {
   const [rxMsg, setRxMsg] = useState("");
   const [status, setStatus] = useState("");
   const [activeTab, setActiveTab] = useState("schedule");
+  const [patientConsentStatus, setPatientConsentStatus] = useState(null);
+  const [consentLoading, setConsentLoading] = useState(false);
 
   useEffect(() => {
     if (!session?.userId) return;
@@ -59,11 +63,34 @@ function DoctorWorkspace() {
     setRxForm({ diagnosis: "", medications: "", notes: "", revisitDate: "" });
     setRxMsg("");
     setPatientMedical(null);
+    setPatientConsentStatus(null);
+
+    // Check consent status
+    try {
+      const { data: consentData } = await consentApi.checkConsent(appt.patientUserId);
+      setPatientConsentStatus(consentData.status);
+    } catch {
+      setPatientConsentStatus("NONE");
+    }
+
     try {
       const { data } = await api.get(`/patients/profile/${appt.patientUserId}`);
       setPatientMedical(data);
     } catch {
       setPatientMedical({ note: "Medical history visible during active appointment only" });
+    }
+  };
+
+  const handleRequestConsentFromWorkspace = async () => {
+    if (!selectedPatient?.patientUserId) return;
+    setConsentLoading(true);
+    try {
+      await consentApi.requestConsent(selectedPatient.patientUserId);
+      setPatientConsentStatus("PENDING");
+    } catch {
+      setStatus("Failed to request consent.");
+    } finally {
+      setConsentLoading(false);
     }
   };
 
@@ -108,6 +135,7 @@ function DoctorWorkspace() {
 
   const tabs = [
     { id: "schedule", label: "Today's Schedule" },
+    { id: "availability", label: "My Availability" },
     { id: "patients", label: "My Patients" },
   ];
 
@@ -259,6 +287,13 @@ function DoctorWorkspace() {
             </div>
           )}
 
+          {/* Availability Tab — Week Calendar */}
+          {activeTab === "availability" && (
+            <div className="frost-card rounded-2xl p-6">
+              <DoctorWeekCalendar doctorUserId={session.userId} />
+            </div>
+          )}
+
           {/* Patients Tab — Today's patients only */}
           {activeTab === "patients" && (
             <div className="frost-card rounded-2xl p-6">
@@ -338,8 +373,43 @@ function DoctorWorkspace() {
                   </div>
                 </div>
 
-                {/* Medical History (only during active appointment) */}
-                {patientMedical && !patientMedical.note && (
+                {/* Medical History (only during active appointment with consent) */}
+                {patientConsentStatus === "NONE" && (
+                  <div className="border-t border-slate-200 pt-4 mt-4 text-center">
+                    <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-xl bg-slate-100">
+                      <svg className="h-6 w-6 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
+                      </svg>
+                    </div>
+                    <p className="text-xs font-bold text-slate-700">Consent Required</p>
+                    <p className="text-xs text-slate-500 mt-1">Request access to view medical history.</p>
+                    <button
+                      onClick={handleRequestConsentFromWorkspace}
+                      disabled={consentLoading}
+                      className="brand-btn px-4 py-2 text-xs mt-3"
+                    >
+                      {consentLoading ? "Requesting..." : "Request Access"}
+                    </button>
+                  </div>
+                )}
+
+                {patientConsentStatus === "PENDING" && (
+                  <div className="border-t border-slate-200 pt-4 mt-4 text-center">
+                    <div className="mb-3 flex h-12 w-12 mx-auto items-center justify-center rounded-xl bg-amber-50">
+                      <svg className="h-6 w-6 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={1.5} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-xs font-bold text-slate-700">Consent Pending</p>
+                    <p className="text-xs text-slate-500 mt-1">Waiting for patient approval.</p>
+                    <span className="inline-flex items-center gap-1.5 mt-2 text-[10px] font-bold text-amber-700 bg-amber-100 px-3 py-1.5 rounded-full">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500 animate-pulse" />
+                      Pending
+                    </span>
+                  </div>
+                )}
+
+                {(patientConsentStatus === "ACTIVE" || patientConsentStatus === null) && patientMedical && !patientMedical.note && (
                   <div className="space-y-3 border-t border-slate-200 pt-4">
                     <p className="text-xs font-semibold uppercase tracking-widest text-slate-500">Medical History</p>
                     {patientMedical.allergies && (

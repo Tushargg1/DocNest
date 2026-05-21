@@ -3,6 +3,7 @@ package com.doctpjt.clinicapp.controller;
 import com.doctpjt.clinicapp.dto.AppointmentDtos.AppointmentResponse;
 import com.doctpjt.clinicapp.dto.AppointmentDtos.AvailableSlotsResponse;
 import com.doctpjt.clinicapp.dto.AppointmentDtos.BookAppointmentRequest;
+import com.doctpjt.clinicapp.dto.AppointmentDtos.RescheduleRequest;
 import com.doctpjt.clinicapp.dto.AppointmentDtos.ReviewRequest;
 import com.doctpjt.clinicapp.service.AppointmentService;
 import jakarta.validation.Valid;
@@ -16,6 +17,7 @@ import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -98,5 +100,22 @@ public class AppointmentController {
     ) {
         Long patientUserId = (Long) authentication.getPrincipal();
         return appointmentService.reviewAppointment(appointmentId, patientUserId, request);
+    }
+
+    /**
+     * PUT /api/appointments/{id}/reschedule
+     * Called by patient (or admin) to move a BOOKED appointment to a new time slot.
+     */
+    @PutMapping("/{appointmentId}/reschedule")
+    @PreAuthorize("hasAnyRole('PATIENT', 'ADMIN')")
+    public AppointmentResponse rescheduleAppointment(
+        @PathVariable Long appointmentId,
+        @Valid @RequestBody RescheduleRequest request,
+        Authentication authentication
+    ) {
+        Long requesterUserId = (Long) authentication.getPrincipal();
+        boolean admin = authentication.getAuthorities().stream()
+            .anyMatch(authority -> authority.getAuthority().equals("ROLE_ADMIN"));
+        return appointmentService.rescheduleAppointment(appointmentId, requesterUserId, admin, request);
     }
 }

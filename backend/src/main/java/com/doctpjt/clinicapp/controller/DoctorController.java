@@ -12,7 +12,10 @@ import com.doctpjt.clinicapp.repository.DoctorProfileRepository;
 import com.doctpjt.clinicapp.repository.RatingRepository;
 import com.doctpjt.clinicapp.service.ClinicalEmbeddingService;
 import com.doctpjt.clinicapp.service.ConsentService;
+import com.doctpjt.clinicapp.service.ScheduleService;
+import com.doctpjt.clinicapp.dto.ScheduleDtos.WeekScheduleResponse;
 import jakarta.validation.Valid;
+import java.time.LocalDate;
 import java.util.List;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
@@ -24,6 +27,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDateTime;
 import com.doctpjt.clinicapp.dto.WorkspaceDtos.DoctorDashboardResponse;
@@ -39,7 +43,6 @@ import com.doctpjt.clinicapp.repository.ClinicRepository;
 import com.doctpjt.clinicapp.repository.UserRepository;
 import com.doctpjt.clinicapp.repository.VisitRecordRepository;
 import java.util.Comparator;
-import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
@@ -59,6 +62,7 @@ public class DoctorController {
     private final ClinicRepository clinicRepository;
     private final ClinicalEmbeddingService clinicalEmbeddingService;
     private final ConsentService consentService;
+    private final ScheduleService scheduleService;
 
     public DoctorController(
         DoctorProfileRepository doctorProfileRepository,
@@ -70,7 +74,8 @@ public class DoctorController {
         UserRepository userRepository,
         ClinicRepository clinicRepository,
         ClinicalEmbeddingService clinicalEmbeddingService,
-        ConsentService consentService
+        ConsentService consentService,
+        ScheduleService scheduleService
     ) {
         this.doctorProfileRepository = doctorProfileRepository;
         this.doctorDegreeRepository = doctorDegreeRepository;
@@ -82,6 +87,7 @@ public class DoctorController {
         this.clinicRepository = clinicRepository;
         this.clinicalEmbeddingService = clinicalEmbeddingService;
         this.consentService = consentService;
+        this.scheduleService = scheduleService;
     }
 
     @PostMapping("/profile")
@@ -100,6 +106,7 @@ public class DoctorController {
             existing.setAge(profile.getAge());
             existing.setGender(profile.getGender());
             existing.setOccupation(profile.getOccupation());
+            existing.setConsultationFee(profile.getConsultationFee());
             // Only reset approval status if updating fields that need re-review (not when just editing bio etc.)
             if (!admin && existing.getApprovalStatus() == DoctorApprovalStatus.ACTIVE) {
                 // Keep ACTIVE status for existing doctors doing minor edits
@@ -272,6 +279,28 @@ public class DoctorController {
             patients,
             upcomingAppointments
         );
+    }
+
+    // === Doctor Weekly Schedule ===
+
+    @GetMapping("/{doctorUserId}/schedule/week")
+    public WeekScheduleResponse getWeekSchedule(
+        @PathVariable Long doctorUserId,
+        @RequestParam(required = false) LocalDate startDate,
+        Authentication authentication
+    ) {
+        // Determine if the caller is the doctor themselves (to show patient names)
+        boolean includePatientNames = false;
+        if (authentication != null && authentication.getPrincipal() instanceof Long) {
+            Long callerId = (Long) authentication.getPrincipal();
+            boolean isDoctor = callerId.equals(doctorUserId);
+            boolean isAdmin = authentication.getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+            includePatientNames = isDoctor || isAdmin;
+        }
+
+        LocalDate start = startDate != null ? startDate : LocalDate.now();
+        return scheduleService.getWeekSchedule(doctorUserId, start, includePatientNames);
     }
 
     // === Doctor Leave Management ===

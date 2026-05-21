@@ -1,5 +1,6 @@
 package com.doctpjt.clinicapp.controller;
 
+import com.doctpjt.clinicapp.dto.AnalyticsDtos.ClinicAnalyticsResponse;
 import com.doctpjt.clinicapp.dto.ClinicDtos.ClinicCreateRequest;
 import com.doctpjt.clinicapp.dto.ClinicDtos.ClinicDoctorResponse;
 import com.doctpjt.clinicapp.dto.ClinicDtos.ClinicPatientResponse;
@@ -80,6 +81,14 @@ public class ClinicController {
         return clinicService.getNearbyDoctors(latitude, longitude);
     }
 
+    @GetMapping("/search-doctors")
+    public List<DoctorCardResponse> searchDoctors(@RequestParam String q) {
+        if (q == null || q.trim().isEmpty()) {
+            return List.of();
+        }
+        return clinicService.searchDoctors(q.trim());
+    }
+
     @GetMapping("/doctor/{doctorUserId}")
     public DoctorCardResponse getDoctorDetail(@PathVariable Long doctorUserId) {
         return clinicService.getDoctorDetail(doctorUserId);
@@ -89,6 +98,12 @@ public class ClinicController {
     @PreAuthorize("hasRole('ADMIN') or (hasRole('CLINIC') and @clinicService.isClinicOwnedBy(#id, principal))")
     public Clinic updateClinic(@PathVariable Long id, @RequestBody Clinic request) {
         return clinicService.updateClinic(id, request);
+    }
+
+    @GetMapping("/{id}/analytics")
+    @PreAuthorize("hasRole('ADMIN') or (hasRole('CLINIC') and @clinicService.isClinicOwnedBy(#id, principal))")
+    public ClinicAnalyticsResponse getClinicAnalytics(@PathVariable Long id) {
+        return clinicService.getClinicAnalytics(id);
     }
 
     @PostMapping("/{id}/doctors")

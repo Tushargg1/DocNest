@@ -17,10 +17,12 @@ import RegisterPatient from "./pages/RegisterPatient";
 import Profile from "./pages/Profile";
 import SymptomChecker from "./pages/SymptomChecker";
 import HealthIntake from "./pages/HealthIntake";
+import Notifications from "./pages/Notifications";
+import PatientConsent from "./pages/PatientConsent";
 
 function App() {
   return (
-    <div className="min-h-screen flex flex-col">
+    <div className="min-h-screen flex flex-col bg-white dark:bg-slate-900 text-slate-900 dark:text-slate-100 transition-colors duration-200">
       <TopNav />
       <main className="flex-1">
         <Routes>
@@ -93,6 +95,22 @@ function App() {
             element={
               <ProtectedRoute roles={["PATIENT"]}>
                 <HealthIntake />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/consent"
+            element={
+              <ProtectedRoute roles={["PATIENT"]}>
+                <PatientConsent />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/notifications"
+            element={
+              <ProtectedRoute roles={["PATIENT", "DOCTOR", "CLINIC", "ADMIN"]}>
+                <Notifications />
               </ProtectedRoute>
             }
           />

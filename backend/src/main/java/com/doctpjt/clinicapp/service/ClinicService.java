@@ -1,5 +1,10 @@
 package com.doctpjt.clinicapp.service;
 
+import com.doctpjt.clinicapp.dto.AnalyticsDtos.ClinicAnalyticsResponse;
+import com.doctpjt.clinicapp.dto.AnalyticsDtos.MonthlyCount;
+import com.doctpjt.clinicapp.dto.AnalyticsDtos.MonthlyRevenue;
+import com.doctpjt.clinicapp.dto.AnalyticsDtos.StatusBreakdown;
+import com.doctpjt.clinicapp.dto.AnalyticsDtos.TopDoctorResponse;
 import com.doctpjt.clinicapp.dto.ClinicDtos.ClinicCreateRequest;
 import com.doctpjt.clinicapp.dto.ClinicDtos.ClinicPatientResponse;
 import com.doctpjt.clinicapp.dto.ClinicDtos.ClinicDoctorResponse;
@@ -35,6 +40,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.doctpjt.clinicapp.dto.ClinicDtos.DoctorRegisterByClinicRequest;
 import java.time.LocalDateTime;
+import java.time.YearMonth;
 
 @Service
 public class ClinicService {
@@ -256,6 +262,66 @@ public class ClinicService {
         );
     }
 
+    public List<DoctorCardResponse> searchDoctors(String query) {
+        List<DoctorProfile> profiles = doctorProfileRepository.searchByNameOrSpecialization(query);
+
+        // Limit to 20 results for performance
+        if (profiles.size() > 20) {
+            profiles = profiles.subList(0, 20);
+        }
+
+        List<Long> userIds = profiles.stream().map(DoctorProfile::getUserId).toList();
+        List<Long> clinicIds = profiles.stream().map(DoctorProfile::getClinicId).filter(id -> id != null).toList();
+
+        Map<Long, User> userMap = userRepository.findAllById(userIds).stream()
+            .collect(Collectors.toMap(User::getId, u -> u));
+
+        Map<Long, Clinic> clinicMap = clinicRepository.findAllById(clinicIds).stream()
+            .collect(Collectors.toMap(Clinic::getId, c -> c));
+
+        Map<Long, List<DoctorDegree>> degreeMap = doctorDegreeRepository.findByDoctorUserIdIn(userIds).stream()
+            .collect(Collectors.groupingBy(DoctorDegree::getDoctorUserId));
+
+        Map<Long, List<Rating>> ratingMap = ratingRepository.findByDoctorUserIdIn(userIds).stream()
+            .collect(Collectors.groupingBy(Rating::getDoctorUserId));
+
+        return profiles.stream()
+            .map(profile -> {
+                User user = userMap.get(profile.getUserId());
+                if (user == null) return null;
+
+                Clinic clinic = clinicMap.get(profile.getClinicId());
+
+                List<String> degrees = degreeMap.getOrDefault(user.getId(), List.of()).stream()
+                    .map(d -> d.getDegreeName() + " - " + d.getInstitute())
+                    .toList();
+
+                List<Rating> ratings = ratingMap.getOrDefault(user.getId(), List.of());
+                double avgRating = ratings.isEmpty()
+                    ? 0.0
+                    : ratings.stream().mapToInt(Rating::getScore).average().orElse(0.0);
+
+                return new DoctorCardResponse(
+                    user.getId(),
+                    clinic != null ? clinic.getId() : null,
+                    user.getFullName(),
+                    profile.getSpecialization(),
+                    profile.getBio(),
+                    profile.getRoomId(),
+                    profile.getAge(),
+                    profile.getGender(),
+                    profile.getOccupation(),
+                    clinic != null ? clinic.getName() : "Independent",
+                    clinic != null ? clinic.getAddress() : "N/A",
+                    null,
+                    degrees,
+                    Math.round(avgRating * 100.0) / 100.0
+                );
+            })
+            .filter(card -> card != null)
+            .collect(Collectors.toList());
+    }
+
     public ClinicDashboardResponse getClinicDashboard(Long clinicId) {
         Clinic clinic = clinicRepository.findById(clinicId)
             .orElseThrow(() -> new IllegalArgumentException("Clinic not found"));
@@ -466,6 +532,120 @@ public class ClinicService {
             .filter(doctor -> doctor.doctorUserId().equals(doctorUserId))
             .findFirst()
             .orElseThrow(() -> new IllegalArgumentException("Doctor not found"));
+    }
+
+    public ClinicAnalyticsResponse getClinicAnalytics(Long clinicId) {
+        Clinic clinic = clinicRepository.findById(clinicId)
+            .orElseThrow(() -> new IllegalArgumentException("Clinic not found"));
+
+        List<Appointment> allAppointments = appointmentRepository.findByClinicId(clinicId);
+        List<DoctorProfile> doctorProfiles = doctorProfileRepository.findByClinicId(clinicId);
+        List<Long> doctorUserIds = doctorProfiles.stream().map(DoctorProfile::getUserId).toList();
+
+        // Monthly visits for last 12 months
+        YearMonth now = YearMonth.now();
+        List<MonthlyCount> monthlyVisits = new ArrayList<>();
+        List<MonthlyRevenue> monthlyRevenue = new ArrayList<>();
+
+        // Default consultation fee (no fee field on entity, use a fixed rate)
+        double consultationFee = 500.0;
+
+        for (int i = 11; i >= 0; i--) {
+            YearMonth ym = now.minusMonths(i);
+            LocalDateTime start = ym.atDay(1).atStartOfDay();
+            LocalDateTime end = ym.atEndOfMonth().atTime(23, 59, 59);
+
+            long visitCount = allAppointments.stream()
+                .filter(a -> a.getStartTime() != null
+                    && !a.getStartTime().isBefore(start)
+                    && !a.getStartTime().isAfter(end)
+                    && (a.getStatus() == AppointmentStatus.COMPLETED || a.getStatus() == AppointmentStatus.ATTENDED))
+                .count();
+
+            monthlyVisits.add(new MonthlyCount(ym.getMonthValue(), ym.getYear(), visitCount));
+            monthlyRevenue.add(new MonthlyRevenue(ym.getMonthValue(), ym.getYear(), visitCount * consultationFee));
+        }
+
+        // Total unique patients
+        long totalPatients = allAppointments.stream()
+            .map(Appointment::getPatientUserId)
+            .filter(id -> id != null)
+            .distinct()
+            .count();
+
+        // Total appointments
+        long totalAppointments = allAppointments.size();
+
+        // Average rating of clinic's doctors
+        List<Rating> allRatings = doctorUserIds.isEmpty()
+            ? List.of()
+            : ratingRepository.findByDoctorUserIdIn(doctorUserIds);
+        double averageRating = allRatings.isEmpty()
+            ? 0.0
+            : Math.round(allRatings.stream().mapToInt(Rating::getScore).average().orElse(0.0) * 100.0) / 100.0;
+
+        // Top performing doctors by appointment count
+        Map<Long, User> userMap = doctorUserIds.isEmpty()
+            ? Map.of()
+            : userRepository.findAllById(doctorUserIds).stream()
+                .collect(Collectors.toMap(User::getId, u -> u));
+
+        Map<Long, List<Rating>> ratingsByDoctor = allRatings.stream()
+            .collect(Collectors.groupingBy(Rating::getDoctorUserId));
+
+        List<TopDoctorResponse> topDoctors = doctorProfiles.stream()
+            .map(profile -> {
+                long apptCount = allAppointments.stream()
+                    .filter(a -> profile.getUserId().equals(a.getDoctorUserId()))
+                    .count();
+                User user = userMap.get(profile.getUserId());
+                List<Rating> docRatings = ratingsByDoctor.getOrDefault(profile.getUserId(), List.of());
+                double docAvgRating = docRatings.isEmpty()
+                    ? 0.0
+                    : Math.round(docRatings.stream().mapToInt(Rating::getScore).average().orElse(0.0) * 100.0) / 100.0;
+
+                return new TopDoctorResponse(
+                    profile.getUserId(),
+                    user != null ? user.getFullName() : "Unknown",
+                    profile.getSpecialization(),
+                    apptCount,
+                    docAvgRating
+                );
+            })
+            .sorted(Comparator.comparingLong(TopDoctorResponse::appointmentCount).reversed())
+            .toList();
+
+        // Status breakdown
+        long completed = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.COMPLETED).count();
+        long cancelled = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.CANCELLED).count();
+        long missed = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.MISSED).count();
+        long booked = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.BOOKED).count();
+        long attended = allAppointments.stream().filter(a -> a.getStatus() == AppointmentStatus.ATTENDED).count();
+        long total = totalAppointments > 0 ? totalAppointments : 1; // avoid division by zero
+
+        StatusBreakdown statusBreakdown = new StatusBreakdown(
+            completed, cancelled, missed, booked, attended, totalAppointments,
+            Math.round((completed * 100.0 / total) * 10.0) / 10.0,
+            Math.round((cancelled * 100.0 / total) * 10.0) / 10.0,
+            Math.round((missed * 100.0 / total) * 10.0) / 10.0
+        );
+
+        // This month's numbers
+        YearMonth thisMonth = YearMonth.now();
+        long thisMonthVisits = monthlyVisits.isEmpty() ? 0 : monthlyVisits.get(monthlyVisits.size() - 1).count();
+        double thisMonthRev = monthlyRevenue.isEmpty() ? 0.0 : monthlyRevenue.get(monthlyRevenue.size() - 1).revenue();
+
+        return new ClinicAnalyticsResponse(
+            monthlyVisits,
+            monthlyRevenue,
+            totalPatients,
+            totalAppointments,
+            averageRating,
+            topDoctors,
+            statusBreakdown,
+            thisMonthVisits,
+            thisMonthRev
+        );
     }
 
     private double haversineKm(double lat1, double lon1, double lat2, double lon2) {

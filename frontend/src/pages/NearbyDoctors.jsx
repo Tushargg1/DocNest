@@ -19,11 +19,15 @@ function NearbyDoctors() {
   const [searchQuery, setSearchQuery] = useState("");
   const [filterSpec, setFilterSpec] = useState("");
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [doctorSearchQuery, setDoctorSearchQuery] = useState("");
+  const [doctorSearchResults, setDoctorSearchResults] = useState([]);
+  const [isSearchingDoctors, setIsSearchingDoctors] = useState(false);
   const [likedClinics, setLikedClinics] = useState(() => {
     try { return new Set(JSON.parse(localStorage.getItem("liked-clinics") || "[]")); }
     catch { return new Set(); }
   });
   const searchTimeout = useRef(null);
+  const doctorSearchTimeout = useRef(null);
 
   const toggleLikeClinic = (clinicId, e) => {
     if (e) e.stopPropagation();
@@ -33,6 +37,33 @@ function NearbyDoctors() {
       localStorage.setItem("liked-clinics", JSON.stringify([...next]));
       return next;
     });
+  };
+
+  const handleDoctorSearch = (value) => {
+    setDoctorSearchQuery(value);
+    if (doctorSearchTimeout.current) clearTimeout(doctorSearchTimeout.current);
+    if (!value.trim()) {
+      setDoctorSearchResults([]);
+      setIsSearchingDoctors(false);
+      return;
+    }
+    doctorSearchTimeout.current = setTimeout(async () => {
+      setIsSearchingDoctors(true);
+      try {
+        const { data } = await api.get("/clinics/search-doctors", { params: { q: value.trim() } });
+        setDoctorSearchResults(data);
+      } catch {
+        setDoctorSearchResults([]);
+      } finally {
+        setIsSearchingDoctors(false);
+      }
+    }, 300);
+  };
+
+  const clearDoctorSearch = () => {
+    setDoctorSearchQuery("");
+    setDoctorSearchResults([]);
+    setIsSearchingDoctors(false);
   };
 
   const fetchDoctors = async (lat, lng) => {
@@ -198,12 +229,12 @@ function NearbyDoctors() {
                 placeholder={placeName || "Search location..."}
               />
               {showSuggestions && placeSuggestions.length > 0 && (
-                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white border border-slate-200 rounded-lg shadow-lg overflow-hidden">
+                <div className="absolute z-50 top-full left-0 right-0 mt-1 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 rounded-lg shadow-lg overflow-hidden">
                   {placeSuggestions.map((place, idx) => (
                     <button
                       key={idx}
                       onClick={() => selectPlace(place)}
-                      className="w-full text-left px-3 py-2.5 hover:bg-slate-50 transition-colors border-b border-slate-100 last:border-0 text-sm"
+                      className="w-full text-left px-3 py-2.5 hover:bg-slate-50 dark:hover:bg-slate-700 transition-colors border-b border-slate-100 dark:border-slate-700 last:border-0 text-sm"
                     >
                       {place.name}
                     </button>
@@ -227,6 +258,83 @@ function NearbyDoctors() {
       </div>
 
       {error && <div className="alert-error mb-4"><p className="text-sm">{error}</p></div>}
+
+      {/* Doctor Name Search */}
+      <div className="frost-card rounded-xl p-4 mb-6 fade-up stagger-1">
+        <div className="relative">
+          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+            </svg>
+          </div>
+          <input
+            type="text"
+            placeholder="Search doctors by name or specialization across all clinics..."
+            value={doctorSearchQuery}
+            onChange={(e) => handleDoctorSearch(e.target.value)}
+            className="field text-sm py-2.5 pl-9 pr-9"
+          />
+          {doctorSearchQuery && (
+            <button
+              onClick={clearDoctorSearch}
+              className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+            >
+              <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          )}
+        </div>
+        {isSearchingDoctors && (
+          <p className="text-xs text-slate-400 mt-2">Searching...</p>
+        )}
+      </div>
+
+      {/* Doctor Search Results */}
+      {doctorSearchQuery.trim() && !isSearchingDoctors && (
+        <div className="mb-6 fade-up">
+          {doctorSearchResults.length > 0 ? (
+            <>
+              <p className="text-sm font-medium text-slate-500 mb-3">
+                {doctorSearchResults.length} doctor{doctorSearchResults.length !== 1 ? "s" : ""} found for "{doctorSearchQuery}"
+              </p>
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+                {doctorSearchResults.map((doc) => (
+                  <Link
+                    key={doc.doctorUserId}
+                    to={`/doctor/${doc.doctorUserId}${doc.clinicId ? `?clinicId=${doc.clinicId}` : ""}`}
+                    className="frost-card p-4 hover:ring-2 hover:ring-teal-200 transition-all block"
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 font-bold text-sm">
+                        {(doc.doctorName || "D").charAt(0)}
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="font-semibold text-slate-900 text-sm truncate">Dr. {doc.doctorName}</p>
+                        <p className="text-xs text-teal-600 mt-0.5">{doc.specialization || "General"}</p>
+                        <p className="text-xs text-slate-500 mt-1 truncate">{doc.clinicName}</p>
+                        {doc.averageRating > 0 && (
+                          <div className="flex items-center gap-1 mt-1.5">
+                            <svg className="h-3.5 w-3.5 text-amber-400 fill-amber-400" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                              <path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+                            </svg>
+                            <span className="text-xs font-medium text-slate-600">{doc.averageRating}</span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </Link>
+                ))}
+              </div>
+            </>
+          ) : (
+            <div className="rounded-xl border border-dashed border-slate-200 p-8 text-center">
+              <p className="text-sm text-slate-500">No doctors found for "{doctorSearchQuery}"</p>
+              <p className="text-xs text-slate-400 mt-1">Try a different name or specialization</p>
+            </div>
+          )}
+        </div>
+      )}
 
       {/* Search & Filter */}
       {doctors.length > 0 && (
@@ -266,7 +374,7 @@ function NearbyDoctors() {
               </button>
             )}
           </div>
-          <p className="text-xs text-slate-400 mt-2">
+          <p className="text-xs text-slate-400 dark:text-slate-500 mt-2">
             Showing {filteredDoctors.length} of {doctors.length} doctors
             {showFavoritesOnly && " (favorites only)"}
           </p>
@@ -283,7 +391,7 @@ function NearbyDoctors() {
       {/* Clinic Cards — expand inline on click */}
       {!loading && groupedClinics.length > 0 && (
         <>
-          <p className="text-sm font-medium text-slate-500 mb-4">
+          <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mb-4">
             {groupedClinics.length} clinic{groupedClinics.length !== 1 ? "s" : ""} found nearby
           </p>
           <div className="space-y-4">
@@ -291,18 +399,18 @@ function NearbyDoctors() {
               const isExpanded = selectedClinicId === clinic.clinicId;
               const isLiked = likedClinics.has(clinic.clinicId);
               return (
-                <article key={clinic.clinicId} className={`frost-card overflow-hidden transition-all ${isExpanded ? "ring-2 ring-teal-200" : ""}`}>
+                <article key={clinic.clinicId} className={`frost-card overflow-hidden transition-all ${isExpanded ? "ring-2 ring-teal-200 dark:ring-teal-800" : ""}`}>
                   {/* Clinic Header — always visible */}
                   <div
-                    className="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-slate-50 transition-colors"
+                    className="flex items-center justify-between gap-4 p-5 cursor-pointer hover:bg-slate-50 dark:hover:bg-slate-800 transition-colors"
                     onClick={() => setSelectedClinicId(isExpanded ? null : clinic.clinicId)}
                   >
                     <div className="flex items-center gap-4 min-w-0">
                       {/* Expand arrow */}
                       <svg className={`h-4 w-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       <div className="min-w-0">
-                        <h3 className="font-bold text-slate-900 truncate">{clinic.clinicName}</h3>
-                        <p className="text-xs text-slate-500 truncate mt-0.5">{clinic.clinicAddress}</p>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{clinic.clinicName}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{clinic.clinicAddress}</p>
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {clinic.specializations.map((spec) => (
                             <span key={spec} className="spec-tag-light">{spec}</span>
@@ -315,44 +423,44 @@ function NearbyDoctors() {
                       {clinic.clinicRating > 0 && (
                         <div className="flex items-center gap-1 text-sm">
                           <svg className="h-4 w-4 text-amber-400 fill-amber-400" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}><path strokeLinecap="round" strokeLinejoin="round" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" /></svg>
-                          <span className="font-semibold text-slate-700">{clinic.clinicRating}</span>
+                          <span className="font-semibold text-slate-700 dark:text-slate-300">{clinic.clinicRating}</span>
                         </div>
                       )}
                       {/* Like button */}
                       <button
                         onClick={(e) => toggleLikeClinic(clinic.clinicId, e)}
-                        className="p-1.5 rounded-lg hover:bg-slate-100 transition"
+                        className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition"
                         title={isLiked ? "Remove from favorites" : "Add to favorites"}
                       >
                         <svg className={`h-5 w-5 ${isLiked ? "text-red-500 fill-red-500" : "text-slate-300 hover:text-slate-400"}`} fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                       </button>
                       {/* Distance */}
                       <div className="text-right">
-                        <p className="text-lg font-bold text-teal-600">{clinic.distanceKm != null ? clinic.distanceKm.toFixed(1) : "—"}</p>
-                        <p className="text-[10px] text-slate-400 uppercase">km</p>
+                        <p className="text-lg font-bold text-teal-600 dark:text-teal-400">{clinic.distanceKm != null ? clinic.distanceKm.toFixed(1) : "—"}</p>
+                        <p className="text-[10px] text-slate-400 dark:text-slate-500 uppercase">km</p>
                       </div>
                     </div>
                   </div>
 
                   {/* Expanded: Clinic details + doctors */}
                   {isExpanded && (
-                    <div className="border-t border-slate-100 bg-slate-50 p-5">
+                    <div className="border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-800/50 p-5">
                       <div className="flex items-center justify-between mb-4">
-                        <p className="text-sm font-medium text-slate-600">
+                        <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
                           {clinic.doctors.length} doctor{clinic.doctors.length !== 1 ? "s" : ""} available
                         </p>
                       </div>
                       <div className="grid gap-3 sm:grid-cols-2">
                         {clinic.doctors.map((doc) => (
-                          <div key={doc.doctorUserId} className="bg-white rounded-lg border border-slate-200 p-4">
+                          <div key={doc.doctorUserId} className="bg-white dark:bg-slate-800 rounded-lg border border-slate-200 dark:border-slate-700 p-4">
                             <div className="flex items-start gap-3">
-                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 text-teal-700 font-bold text-sm">
+                              <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg bg-teal-50 dark:bg-teal-900/30 text-teal-700 dark:text-teal-400 font-bold text-sm">
                                 {(doc.doctorName || "D").charAt(0)}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="font-semibold text-slate-900 text-sm">Dr. {doc.doctorName}</p>
-                                <p className="text-xs text-teal-600 mt-0.5">{doc.specialization || "General"}</p>
-                                <div className="mt-1 flex items-center gap-3 text-xs text-slate-400">
+                                <p className="font-semibold text-slate-900 dark:text-slate-100 text-sm">Dr. {doc.doctorName}</p>
+                                <p className="text-xs text-teal-600 dark:text-teal-400 mt-0.5">{doc.specialization || "General"}</p>
+                                <div className="mt-1 flex items-center gap-3 text-xs text-slate-400 dark:text-slate-500">
                                   {doc.roomId && <span>Room {doc.roomId}</span>}
                                   {doc.averageRating > 0 && <span>{doc.averageRating} rating</span>}
                                 </div>
@@ -378,9 +486,9 @@ function NearbyDoctors() {
       )}
 
       {!loading && groupedClinics.length === 0 && !error && (
-        <div className="rounded-xl border border-dashed border-slate-200 p-12 text-center">
-          <p className="text-lg font-semibold text-slate-500">No clinics found near this location.</p>
-          <p className="mt-2 text-sm text-slate-400">Try using your GPS location or search for a different area.</p>
+        <div className="rounded-xl border border-dashed border-slate-200 dark:border-slate-700 p-12 text-center">
+          <p className="text-lg font-semibold text-slate-500 dark:text-slate-400">No clinics found near this location.</p>
+          <p className="mt-2 text-sm text-slate-400 dark:text-slate-500">Try using your GPS location or search for a different area.</p>
         </div>
       )}
     </div>

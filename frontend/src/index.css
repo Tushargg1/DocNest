@@ -1,6 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap");
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
   
@@ -22,6 +24,27 @@
   --success-bg: #f0fdf4;
   --warning: #d97706;
   --warning-bg: #fffbeb;
+}
+
+/* ======================== DARK MODE ======================== */
+.dark {
+  --primary: #14b8a6;
+  --primary-light: #042f2e;
+  --primary-dark: #5eead4;
+  --text-primary: #f1f5f9;
+  --text-secondary: #cbd5e1;
+  --text-muted: #64748b;
+  --border: #334155;
+  --border-light: #1e293b;
+  --bg: #0f172a;
+  --bg-subtle: #1e293b;
+  --bg-muted: #334155;
+  --danger: #f87171;
+  --danger-bg: #1c1917;
+  --success: #4ade80;
+  --success-bg: #052e16;
+  --warning: #fbbf24;
+  --warning-bg: #1c1917;
 }
 
 /* ======================== BODY ======================== */
@@ -52,7 +75,7 @@ body {
 
 .frost-card-dark {
   border: 1px solid var(--border);
-  background: var(--bg-subtle);
+  background: var(--bg-muted);
   border-radius: 0.75rem;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
   color: var(--text-primary);
@@ -355,7 +378,7 @@ textarea.field { resize: vertical; min-height: 80px; }
   position: relative;
   overflow: hidden;
   border-radius: 0.5rem;
-  background: linear-gradient(90deg, #f3f4f6 0%, #e5e7eb 50%, #f3f4f6 100%);
+  background: linear-gradient(90deg, var(--bg-muted) 0%, var(--border) 50%, var(--bg-muted) 100%);
   background-size: 220% 100%;
   animation: shimmer 1.4s ease-in-out infinite;
 }
@@ -438,8 +461,8 @@ textarea.field { resize: vertical; min-height: 80px; }
 /* ======================== SCROLLBAR ======================== */
 ::-webkit-scrollbar { width: 6px; height: 6px; }
 ::-webkit-scrollbar-track { background: transparent; }
-::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 999px; }
-::-webkit-scrollbar-thumb:hover { background: #9ca3af; }
+::-webkit-scrollbar-thumb { background: var(--text-muted); border-radius: 999px; }
+::-webkit-scrollbar-thumb:hover { background: var(--text-secondary); }
 
 /* ======================== FOCUS ======================== */
 *:focus-visible {
@@ -466,4 +489,78 @@ a, button, input, select, textarea {
   .section-title { font-size: 1.25rem; }
   .shell { width: min(1120px, calc(100% - 1.25rem)); }
   .token-number { font-size: 2.5rem; }
+}
+
+/* ======================== DARK MODE TRANSITION ======================== */
+html {
+  transition: background-color 200ms ease, color 200ms ease;
+}
+
+/* ======================== DARK MODE: BASE OVERRIDES ======================== */
+/* These catch hardcoded Tailwind colors used across pages without needing
+   dark: prefixes on every single element. The :where() keeps specificity low
+   so explicit dark: classes always win. */
+
+.dark :where(.bg-white) {
+  background-color: var(--bg);
+}
+
+.dark :where(.bg-slate-50) {
+  background-color: var(--bg-subtle);
+}
+
+.dark :where(.bg-slate-100) {
+  background-color: var(--bg-muted);
+}
+
+.dark :where(.border-slate-100) {
+  border-color: var(--border-light);
+}
+
+.dark :where(.border-slate-200) {
+  border-color: var(--border);
+}
+
+.dark :where(.border-slate-300) {
+  border-color: var(--border);
+}
+
+.dark :where(.text-slate-900) {
+  color: var(--text-primary);
+}
+
+.dark :where(.text-slate-800) {
+  color: var(--text-primary);
+}
+
+.dark :where(.text-slate-700) {
+  color: var(--text-secondary);
+}
+
+.dark :where(.text-slate-600) {
+  color: var(--text-secondary);
+}
+
+.dark :where(.text-slate-500) {
+  color: var(--text-muted);
+}
+
+.dark :where(.text-slate-400) {
+  color: var(--text-muted);
+}
+
+.dark :where(.hover\:bg-slate-50:hover) {
+  background-color: var(--bg-subtle);
+}
+
+.dark :where(.hover\:bg-slate-100:hover) {
+  background-color: var(--bg-muted);
+}
+
+.dark :where(.ring-slate-200) {
+  --tw-ring-color: var(--border);
+}
+
+.dark :where(.divide-slate-200 > :not(:first-child)) {
+  border-color: var(--border);
 }
