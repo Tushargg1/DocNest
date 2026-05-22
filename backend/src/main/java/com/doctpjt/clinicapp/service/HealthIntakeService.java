@@ -1,30 +1,29 @@
 package com.doctpjt.clinicapp.service;
 
+import com.doctpjt.clinicapp.entity.ClinicalEmbedding;
 import com.doctpjt.clinicapp.entity.PatientProfile;
+import com.doctpjt.clinicapp.entity.VisitRecord;
 import com.doctpjt.clinicapp.repository.PatientProfileRepository;
+import com.doctpjt.clinicapp.repository.VisitRecordRepository;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.stream.Collectors;
 import org.springframework.stereotype.Service;
 
 /**
- * Structured Medical History Intake.
+ * RAG-Powered Structured Medical History Intake.
  *
- * For each condition, we collect EXACTLY these 6 fields (all optional except name):
- *   1. diseaseName    — Name of disease/condition
- *   2. startedWhen    — When did it start (year, age, "5 years ago" etc.)
- *   3. medicineName   — Medicine taken (or blank if unknown)
- *   4. recoveredWhen  — When recovered (or "ongoing"/"not recovered")
- *   5. hospital       — Hospital/clinic name
- *   6. doctorName     — Doctor's name
- *   7. visitDate      — Date of last visit
- *   8. medicationDuration — How long medicines were taken
+ * RAG Flow:
+ * 1. RETRIEVAL: On start, retrieves patient's existing visit records + embeddings
+ * 2. AUGMENTATION: Pre-fills known conditions from past visits, skips redundant questions
+ * 3. GENERATION: AI uses retrieved context to ask smarter follow-ups
  *
- * Result stored as structured JSON in PatientProfile.medicalHistory
- * Frontend renders as a table.
+ * For each condition, collects structured fields:
+ *   diseaseName, startedWhen, medicineName, recoveredWhen, hospital, doctorName, visitDate, medicationDuration
  */
 @Service
 public class HealthIntakeService {
@@ -32,6 +31,8 @@ public class HealthIntakeService {
     private static final ObjectMapper MAPPER = new ObjectMapper();
 
     private final PatientProfileRepository patientProfileRepository;
+    private final VisitRecordRepository visitRecordRepository;
+    private final ClinicalEmbeddingService clinicalEmbeddingService;
     private final GroqAIService groqAI;
     private final ConcurrentHashMap<Long, IntakeSession> sessions = new ConcurrentHashMap<>();
 
@@ -60,8 +61,10 @@ public class HealthIntakeService {
             "placeholder", "e.g. 2 months ago")
     );
 
-    public HealthIntakeService(PatientProfileRepository patientProfileRepository, GroqAIService groqAI) {
+    public HealthIntakeService(PatientProfileRepository patientProfileRepository, VisitRecordRepository visitRecordRepository, ClinicalEmbeddingService clinicalEmbeddingService, GroqAIService groqAI) {
         this.patientProfileRepository = patientProfileRepository;
+        this.visitRecordRepository = visitRecordRepository;
+        this.clinicalEmbeddingService = clinicalEmbeddingService;
         this.groqAI = groqAI;
     }
 
@@ -69,8 +72,54 @@ public class HealthIntakeService {
 
     public Map<String, Object> startIntake(Long patientUserId) {
         IntakeSession session = new IntakeSession(patientUserId);
+
+        // === RAG STEP 1: RETRIEVAL ===
+        // Retrieve existing patient data from profile + visit history + embeddings
+        PatientProfile existingProfile = patientProfileRepository.findByUserId(patientUserId).orElse(null);
+        List<VisitRecord> pastVisits = visitRecordRepository.findByPatientUserIdOrderByVisitDateDesc(patientUserId);
+        List<ClinicalEmbedding> relevantEmbeddings = clinicalEmbeddingService.findTopMatches(patientUserId, "medical history conditions medications", 5);
+
+        // === RAG STEP 2: AUGMENTATION ===
+        // Pre-fill known data so we don't ask redundant questions
+        if (existingProfile != null) {
+            if (existingProfile.getAge() != null) session.answers.put("age", String.valueOf(existingProfile.getAge()));
+            if (existingProfile.getGender() != null) session.answers.put("gender", existingProfile.getGender());
+            if (existingProfile.getHeight() != null) session.answers.put("height", String.valueOf(existingProfile.getHeight()));
+            if (existingProfile.getWeight() != null) session.answers.put("weight", String.valueOf(existingProfile.getWeight()));
+            if (existingProfile.getBloodGroup() != null) session.answers.put("bloodGroup", existingProfile.getBloodGroup());
+        }
+
+        // Build RAG context from past visits for AI to use
+        StringBuilder ragContext = new StringBuilder();
+        for (VisitRecord visit : pastVisits) {
+            if (visit.getDiagnosis() != null) ragContext.append("Past diagnosis: ").append(visit.getDiagnosis()).append("\n");
+            if (visit.getMedications() != null) ragContext.append("Past medications: ").append(visit.getMedications()).append("\n");
+        }
+        for (ClinicalEmbedding emb : relevantEmbeddings) {
+            if (emb.getSourceText() != null) ragContext.append("Embedded record: ").append(emb.getSourceText()).append("\n");
+        }
+        session.ragContext = ragContext.toString();
+
+        // Pre-populate known conditions from visit history
+        List<String> knownConditions = pastVisits.stream()
+            .map(VisitRecord::getDiagnosis)
+            .filter(d -> d != null && !d.isBlank())
+            .distinct()
+            .collect(Collectors.toList());
+        session.knownFromRAG = knownConditions;
+
         sessions.put(patientUserId, session);
-        return buildNextQuestion(session);
+
+        // Build response with RAG info
+        Map<String, Object> response = buildNextQuestion(session);
+        if (!knownConditions.isEmpty()) {
+            response.put("ragInfo", Map.of(
+                "message", "We found some information from your previous visits.",
+                "knownConditions", knownConditions,
+                "preFilledFields", session.answers.keySet()
+            ));
+        }
+        return response;
     }
 
     public Map<String, Object> submitAnswer(Long patientUserId, Map<String, Object> answer) {
@@ -93,6 +142,32 @@ public class HealthIntakeService {
         IntakeSession session = sessions.get(patientUserId);
         if (session == null) throw new IllegalArgumentException("No active intake session");
         saveToProfile(session);
+
+        // === RAG STEP 3: EMBED NEW DATA ===
+        // Store the intake answers as a new embedding for future RAG retrieval
+        try {
+            String intakeText = "Health intake completed. " +
+                "Conditions: " + session.conditionRecords.stream()
+                    .map(r -> r.get("diseaseName"))
+                    .collect(Collectors.joining(", ")) +
+                ". Medications: " + session.answers.getOrDefault("currentMedications", "none");
+
+            // Create a synthetic visit-like embedding for the intake
+            VisitRecord syntheticVisit = new VisitRecord();
+            syntheticVisit.setId(0L); // Will be set by embedding service
+            syntheticVisit.setPatientUserId(patientUserId);
+            syntheticVisit.setDoctorUserId(0L);
+            syntheticVisit.setDiagnosis(session.conditionRecords.stream()
+                .map(r -> r.get("diseaseName")).collect(Collectors.joining(", ")));
+            syntheticVisit.setMedications(session.conditionRecords.stream()
+                .map(r -> r.get("medicineName")).filter(m -> m != null && !m.isBlank())
+                .collect(Collectors.joining(", ")));
+            syntheticVisit.setDiseaseHistory(intakeText);
+            clinicalEmbeddingService.embedVisit(syntheticVisit);
+        } catch (Exception ignored) {
+            // Embedding is optional — don't fail the intake
+        }
+
         sessions.remove(patientUserId);
         return Map.of("status", "completed", "message", "Your medical history has been saved!");
     }
@@ -106,8 +181,11 @@ public class HealthIntakeService {
         List<Map<String, String>> conditionRecords = new ArrayList<>();
         // Current state machine
         String phase = "basics";
-        int currentConditionIndex = 0; // which condition we're collecting details for
-        int currentFieldIndex = 0; // which field of that condition
+        int currentConditionIndex = 0;
+        int currentFieldIndex = 0;
+        // RAG context
+        String ragContext = ""; // Retrieved visit history for AI augmentation
+        List<String> knownFromRAG = new ArrayList<>(); // Conditions already known from past visits
 
         IntakeSession(Long patientUserId) { this.patientUserId = patientUserId; }
     }
@@ -125,7 +203,7 @@ public class HealthIntakeService {
         // PHASE 2: Select conditions
         if (session.phase.equals("conditions_select")) {
             if (!session.answers.containsKey("chronicConditions")) {
-                return wrap(getConditionsQuestion(), session);
+                return wrap(getConditionsQuestion(session), session);
             }
             // Initialize condition records
             initializeConditionRecords(session);
@@ -202,17 +280,36 @@ public class HealthIntakeService {
         return null;
     }
 
-    private Map<String, Object> getConditionsQuestion() {
-        return Map.of("id", "chronicConditions", "phase", "Health Conditions", "type", "multi-select",
-            "question", "Have you ever had any of these health problems? (past or current)",
-            "hint", "Select ALL that apply. Include both current and past illnesses you've been treated for.",
-            "options", List.of(
-                "Diabetes (high sugar)", "High BP (blood pressure)", "Asthma / Breathing problem",
-                "Thyroid issue", "Heart problem", "Kidney problem", "Arthritis / Joint pain",
-                "Depression / Anxiety", "PCOD / PCOS", "Migraine", "Back pain / Slip disc",
-                "Tuberculosis (TB)", "Jaundice / Liver issues", "Cancer (any type)",
-                "None of these"
-            ), "allowOther", true, "otherPlaceholder", "Any other illness or operation...");
+    private Map<String, Object> getConditionsQuestion(IntakeSession session) {
+        Map<String, Object> q = new LinkedHashMap<>();
+        q.put("id", "chronicConditions");
+        q.put("phase", "Health Conditions");
+        q.put("type", "multi-select");
+
+        if (!session.knownFromRAG.isEmpty()) {
+            q.put("question", "From your previous visits, we know about: " + String.join(", ", session.knownFromRAG) + ". Do you have any OTHER health conditions?");
+            q.put("hint", "We've pre-selected conditions from your visit history. Add any new ones or remove incorrect ones.");
+        } else {
+            q.put("question", "Have you ever had any of these health problems? (past or current)");
+            q.put("hint", "Select ALL that apply. Include both current and past illnesses you've been treated for.");
+        }
+
+        q.put("options", List.of(
+            "Diabetes (high sugar)", "High BP (blood pressure)", "Asthma / Breathing problem",
+            "Thyroid issue", "Heart problem", "Kidney problem", "Arthritis / Joint pain",
+            "Depression / Anxiety", "PCOD / PCOS", "Migraine", "Back pain / Slip disc",
+            "Tuberculosis (TB)", "Jaundice / Liver issues", "Cancer (any type)",
+            "None of these"
+        ));
+        q.put("allowOther", true);
+        q.put("otherPlaceholder", "Any other illness or operation...");
+
+        // Pre-select known conditions from RAG
+        if (!session.knownFromRAG.isEmpty()) {
+            q.put("preSelected", session.knownFromRAG);
+        }
+
+        return q;
     }
 
     private Map<String, Object> getAllergiesQuestion() {
@@ -345,8 +442,12 @@ public class HealthIntakeService {
 
         response.put("summary", summary);
 
-        // AI summary (optional)
-        String aiSummary = groqAI.generateSummary(summary);
+        // AI Summary augmented with RAG context (retrieved visit history)
+        Map<String, Object> augmentedData = new LinkedHashMap<>(summary);
+        if (session.ragContext != null && !session.ragContext.isBlank()) {
+            augmentedData.put("previousVisitHistory", session.ragContext);
+        }
+        String aiSummary = groqAI.generateSummary(augmentedData);
         if (aiSummary != null) response.put("aiSummary", aiSummary);
 
         return response;
