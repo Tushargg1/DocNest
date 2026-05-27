@@ -287,19 +287,14 @@ function NearbyDoctors() {
 
       {error && <div className="alert-error mb-4"><p className="text-sm">{error}</p></div>}
 
-      {/* Doctor Name Search */}
-      <div className="relative mb-6 fade-up stagger-1">
-        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-          <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
-        </div>
+      {/* Doctor Name Search — no icon, clean */}
+      <div className="mb-6 fade-up stagger-1">
         <input
           type="text"
           placeholder="Search doctors by name or specialization..."
           value={doctorSearchQuery}
           onChange={(e) => handleDoctorSearch(e.target.value)}
-          className="field text-sm py-3 pl-10 pr-10"
+          className="field text-sm py-3"
         />
         {doctorSearchQuery && (
           <button
@@ -428,8 +423,8 @@ function NearbyDoctors() {
                       {/* Expand arrow */}
                       <svg className={`h-4 w-4 text-slate-400 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" /></svg>
                       <div className="min-w-0">
-                        <h3 className="font-bold text-slate-900 dark:text-slate-100 truncate">{clinic.clinicName}</h3>
-                        <p className="text-xs text-slate-500 dark:text-slate-400 truncate mt-0.5">{clinic.clinicAddress}</p>
+                        <h3 className="font-bold text-slate-900 dark:text-slate-100">{clinic.clinicName}</h3>
+                        <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">{clinic.clinicAddress}</p>
                         <div className="mt-1.5 flex flex-wrap gap-1">
                           {clinic.specializations.map((spec) => (
                             <span key={spec} className="spec-tag-light">{spec}</span>
