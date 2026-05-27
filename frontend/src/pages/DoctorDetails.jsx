@@ -40,10 +40,15 @@ function DoctorDetails() {
 
   const toggleFavorite = async () => {
     if (!session) { navigate("/login"); return; }
+    // Optimistic UI — toggle immediately, revert on failure
+    const wasFav = isFav;
+    setIsFav(!wasFav);
     try {
-      if (isFav) { await api.delete(`/favorites/${doctorUserId}`); setIsFav(false); }
-      else { await api.post(`/favorites/${doctorUserId}`); setIsFav(true); }
-    } catch {}
+      if (wasFav) { await api.delete(`/favorites/${doctorUserId}`); }
+      else { await api.post(`/favorites/${doctorUserId}`); }
+    } catch {
+      setIsFav(wasFav); // revert on failure
+    }
   };
 
   const bookSlot = async (slot) => {

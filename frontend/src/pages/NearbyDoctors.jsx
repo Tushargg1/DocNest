@@ -207,7 +207,13 @@ function NearbyDoctors() {
         : 0;
       return { ...clinic, specializations: Array.from(clinic.specializations), clinicRating: Math.round(clinicRating * 10) / 10 };
     })
-    .sort((a, b) => (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999));
+    .sort((a, b) => {
+      // Favorites first, then by distance
+      const aFav = likedClinics.has(a.clinicId) ? 0 : 1;
+      const bFav = likedClinics.has(b.clinicId) ? 0 : 1;
+      if (aFav !== bFav) return aFav - bFav;
+      return (a.distanceKm ?? 9999) - (b.distanceKm ?? 9999);
+    });
 
   return (
     <div className="shell py-10 fade-up" onClick={() => setShowSuggestions(false)}>
