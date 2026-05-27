@@ -26,6 +26,10 @@ function NearbyDoctors() {
     try { return new Set(JSON.parse(localStorage.getItem("liked-clinics") || "[]")); }
     catch { return new Set(); }
   });
+  const [likedDoctors, setLikedDoctors] = useState(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("liked-doctors") || "[]")); }
+    catch { return new Set(); }
+  });
   const searchTimeout = useRef(null);
   const doctorSearchTimeout = useRef(null);
 
@@ -37,6 +41,24 @@ function NearbyDoctors() {
       localStorage.setItem("liked-clinics", JSON.stringify([...next]));
       return next;
     });
+  };
+
+  const toggleLikeDoctor = (doctorUserId, e) => {
+    if (e) e.stopPropagation();
+    setLikedDoctors(prev => {
+      const next = new Set(prev);
+      if (next.has(doctorUserId)) next.delete(doctorUserId); else next.add(doctorUserId);
+      localStorage.setItem("liked-doctors", JSON.stringify([...next]));
+      return next;
+    });
+    // Also call backend API (fire and forget)
+    if (session) {
+      if (likedDoctors.has(doctorUserId)) {
+        api.delete(`/favorites/${doctorUserId}`).catch(() => {});
+      } else {
+        api.post(`/favorites/${doctorUserId}`).catch(() => {});
+      }
+    }
   };
 
   const handleDoctorSearch = (value) => {
@@ -576,10 +598,10 @@ function NearbyDoctors() {
                               {/* Favorite heart for logged-in patients */}
                               {session && session.role === "PATIENT" && (
                                 <button
-                                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleLikeClinic(clinic.clinicId, e); }}
+                                  onClick={(e) => { e.stopPropagation(); e.preventDefault(); toggleLikeDoctor(doc.doctorUserId, e); }}
                                   className="shrink-0 p-1"
                                 >
-                                  <svg className={`h-5 w-5 ${likedClinics.has(clinic.clinicId) ? "text-red-500 fill-red-500" : "text-slate-300"}`} fill={likedClinics.has(clinic.clinicId) ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                                  <svg className={`h-5 w-5 ${likedDoctors.has(doc.doctorUserId) ? "text-red-500 fill-red-500" : "text-slate-300"}`} fill={likedDoctors.has(doc.doctorUserId) ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                                 </button>
                               )}
                             </div>
