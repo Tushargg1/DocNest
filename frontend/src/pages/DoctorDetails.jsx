@@ -100,10 +100,7 @@ function DoctorDetails() {
       {/* Doctor Card — collapsible */}
       <div className="frost-card rounded-2xl mb-6 overflow-hidden">
         {/* Doctor Header — always visible */}
-        <button
-          onClick={() => setShowDetails(!showDetails)}
-          className="w-full text-left p-5 flex items-center gap-4 hover:bg-slate-50 transition-colors"
-        >
+        <div className="p-5 flex items-center gap-4">
           <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-teal-600 text-white text-xl font-black">
             {doctor.doctorName.charAt(0)}
           </div>
@@ -113,57 +110,59 @@ function DoctorDetails() {
               <span className="text-xs font-bold text-teal-600 bg-teal-50 px-2 py-0.5 rounded">{doctor.specialization}</span>
               {doctor.age && <span className="text-xs text-slate-400">{doctor.age}y</span>}
               {doctor.gender && <span className="text-xs text-slate-400">• {doctor.gender}</span>}
-              {doctor.roomId && <span className="text-xs text-slate-400">• Room {doctor.roomId}</span>}
+              {doctor.roomId && <span className="text-xs text-slate-400">• {doctor.roomId}</span>}
             </div>
           </div>
           <div className="flex items-center gap-2 shrink-0">
             {doctor.averageRating > 0 && (
               <span className="text-sm font-bold text-amber-600">⭐ {doctor.averageRating}</span>
             )}
-            <svg className={`h-5 w-5 text-slate-400 transition-transform ${showDetails ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+          </div>
+        </div>
+
+        {/* Favorite + Expand row — always visible */}
+        <div className="px-5 pb-4 flex items-center justify-between gap-3">
+          {session && session.role === "PATIENT" && (
+            <button
+              onClick={toggleFavorite}
+              className={`text-sm font-bold px-4 py-2 rounded-xl transition-all ${isFav ? "bg-rose-50 text-rose-600 border border-rose-200" : "bg-slate-50 text-slate-500 border border-slate-200 hover:border-rose-300"}`}
+            >
+              {isFav ? "❤️ Saved" : "🤍 Save"}
+            </button>
+          )}
+          {!session && <div />}
+          <button
+            onClick={() => setShowDetails(!showDetails)}
+            className="text-xs font-semibold text-teal-600 flex items-center gap-1 hover:underline"
+          >
+            {showDetails ? "Hide details" : "View details"}
+            <svg className={`h-4 w-4 transition-transform ${showDetails ? "rotate-180" : ""}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
               <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
             </svg>
-          </div>
-        </button>
+          </button>
+        </div>
 
         {/* Expanded Details */}
         {showDetails && (
           <div className="px-5 pb-5 border-t border-slate-100 pt-4 space-y-4">
-            {/* Bio */}
             {doctor.bio && (
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase mb-1">About</p>
                 <p className="text-sm text-slate-600 leading-relaxed">{doctor.bio}</p>
               </div>
             )}
-
-            {/* Degrees */}
             {doctor.degrees && doctor.degrees.length > 0 && (
               <div>
                 <p className="text-xs font-bold text-slate-400 uppercase mb-2">Qualifications</p>
                 <div className="flex flex-wrap gap-2">
                   {doctor.degrees.map((deg, i) => (
-                    <span key={i} className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg font-medium">
-                      {deg}
-                    </span>
+                    <span key={i} className="text-xs bg-slate-100 text-slate-700 px-2.5 py-1 rounded-lg font-medium">{deg}</span>
                   ))}
                 </div>
               </div>
             )}
-
-            {/* Distance */}
             {doctor.distanceKm != null && (
               <p className="text-sm text-teal-600 font-semibold">{doctor.distanceKm} km from you</p>
-            )}
-
-            {/* Favorite */}
-            {session && session.role === "PATIENT" && (
-              <button
-                onClick={toggleFavorite}
-                className={`text-sm font-bold px-4 py-2 rounded-xl transition-all ${isFav ? "bg-rose-50 text-rose-600 border border-rose-200" : "bg-slate-50 text-slate-500 border border-slate-200"}`}
-              >
-                {isFav ? "❤️ Saved to Favorites" : "🤍 Add to Favorites"}
-              </button>
             )}
           </div>
         )}
