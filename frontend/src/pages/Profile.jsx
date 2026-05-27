@@ -894,25 +894,15 @@ function Profile() {
                       )}
                     </div>
                   </div>
-                  <div className="grid gap-6 md:grid-cols-2">
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Latitude</label>
-                      <input
-                        type="number" step="any"
-                        value={clinic.latitude || ""}
-                        onChange={(e) => setClinic({ ...clinic, latitude: e.target.value })}
-                        className="field mt-2"
-                      />
-                    </div>
-                    <div>
-                      <label className="text-[10px] font-bold uppercase tracking-widest text-slate-400 ml-1">Longitude</label>
-                      <input
-                        type="number" step="any"
-                        value={clinic.longitude || ""}
-                        onChange={(e) => setClinic({ ...clinic, longitude: e.target.value })}
-                        className="field mt-2"
-                      />
-                    </div>
+                  <div>
+                    <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 ml-1">Clinic Phone</label>
+                    <input
+                      type="tel"
+                      value={clinic.phone || ""}
+                      onChange={(e) => setClinic({ ...clinic, phone: e.target.value })}
+                      placeholder="e.g. 011-4123-5678"
+                      className="field mt-2"
+                    />
                   </div>
 
                   {/* Contact Info */}
