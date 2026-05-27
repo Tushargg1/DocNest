@@ -1,11 +1,14 @@
 package com.doctpjt.clinicapp.controller;
 
+import com.doctpjt.clinicapp.entity.Clinic;
 import com.doctpjt.clinicapp.entity.DoctorProfile;
 import com.doctpjt.clinicapp.entity.User;
+import com.doctpjt.clinicapp.repository.ClinicRepository;
 import com.doctpjt.clinicapp.repository.DoctorProfileRepository;
 import com.doctpjt.clinicapp.repository.UserRepository;
 import com.doctpjt.clinicapp.service.CloudinaryService;
 import com.doctpjt.clinicapp.service.PrescriptionOCRService;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -23,16 +26,22 @@ import org.springframework.web.multipart.MultipartFile;
 @RequestMapping("/api/upload")
 public class UploadController {
 
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
     private final CloudinaryService cloudinaryService;
     private final PrescriptionOCRService prescriptionOCRService;
     private final UserRepository userRepository;
     private final DoctorProfileRepository doctorProfileRepository;
+    private final ClinicRepository clinicRepository;
 
-    public UploadController(CloudinaryService cloudinaryService, PrescriptionOCRService prescriptionOCRService, UserRepository userRepository, DoctorProfileRepository doctorProfileRepository) {
+    public UploadController(CloudinaryService cloudinaryService, PrescriptionOCRService prescriptionOCRService,
+                            UserRepository userRepository, DoctorProfileRepository doctorProfileRepository,
+                            ClinicRepository clinicRepository) {
         this.cloudinaryService = cloudinaryService;
         this.prescriptionOCRService = prescriptionOCRService;
         this.userRepository = userRepository;
         this.doctorProfileRepository = doctorProfileRepository;
+        this.clinicRepository = clinicRepository;
     }
 
     /**
@@ -53,19 +62,18 @@ public class UploadController {
     }
 
     /**
-     * Upload multiple clinic photos (up to 5).
-     * POST /api/upload/clinic-photos
-     * Form: files[] (multiple), clinicName
+     * Upload multiple clinic photos (up to 5) and save to clinic entity.
      */
     @PostMapping("/clinic-photos")
     @PreAuthorize("hasAnyRole('CLINIC', 'ADMIN')")
     public Map<String, Object> uploadClinicPhotos(
         @RequestParam("files") MultipartFile[] files,
         @RequestParam String clinicName,
+        @RequestParam(required = false) Long clinicId,
         Authentication authentication
     ) {
         if (!cloudinaryService.isConfigured()) {
-            throw new IllegalStateException("Image upload service is not configured. Please contact support.");
+            throw new IllegalStateException("Image upload service is not configured.");
         }
 
         List<String> urls = new ArrayList<>();
@@ -80,6 +88,34 @@ public class UploadController {
             }
         }
 
+        // Save URLs to clinic entity
+        if (!urls.isEmpty()) {
+            Long userId = (Long) authentication.getPrincipal();
+            Clinic clinic = null;
+            if (clinicId != null) {
+                clinic = clinicRepository.findById(clinicId).orElse(null);
+            }
+            if (clinic == null) {
+                clinic = clinicRepository.findByOwnerUserId(userId).stream().findFirst().orElse(null);
+            }
+            if (clinic != null) {
+                try {
+                    // Merge with existing photos
+                    List<String> existing = new ArrayList<>();
+                    if (clinic.getPhotos() != null && !clinic.getPhotos().isBlank()) {
+                        existing = new ArrayList<>(List.of(MAPPER.readValue(clinic.getPhotos(), String[].class)));
+                    }
+                    existing.addAll(urls);
+                    // Keep max 5
+                    if (existing.size() > 5) existing = existing.subList(existing.size() - 5, existing.size());
+                    clinic.setPhotos(MAPPER.writeValueAsString(existing));
+                    clinicRepository.save(clinic);
+                } catch (Exception e) {
+                    errors.add("Failed to save to clinic: " + e.getMessage());
+                }
+            }
+        }
+
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("uploaded", urls.size());
         result.put("urls", urls);
@@ -88,7 +124,7 @@ public class UploadController {
     }
 
     /**
-     * Upload single clinic photo (backward compatible).
+     * Upload single clinic photo.
      */
     @PostMapping("/clinic-photo")
     @PreAuthorize("hasAnyRole('CLINIC', 'ADMIN')")
@@ -99,11 +135,26 @@ public class UploadController {
         Authentication authentication
     ) {
         if (!cloudinaryService.isConfigured()) {
-            throw new IllegalStateException("Image upload service is not configured. Please contact support.");
+            throw new IllegalStateException("Image upload service is not configured.");
         }
 
         try {
             String url = cloudinaryService.uploadClinicPhoto(file, clinicName, type);
+
+            // Save to clinic entity
+            Long userId = (Long) authentication.getPrincipal();
+            Clinic clinic = clinicRepository.findByOwnerUserId(userId).stream().findFirst().orElse(null);
+            if (clinic != null) {
+                List<String> photos = new ArrayList<>();
+                if (clinic.getPhotos() != null && !clinic.getPhotos().isBlank()) {
+                    try { photos = new ArrayList<>(List.of(MAPPER.readValue(clinic.getPhotos(), String[].class))); } catch (Exception ignored) {}
+                }
+                photos.add(url);
+                if (photos.size() > 5) photos = photos.subList(photos.size() - 5, photos.size());
+                clinic.setPhotos(MAPPER.writeValueAsString(photos));
+                clinicRepository.save(clinic);
+            }
+
             return Map.of("url", url, "status", "success");
         } catch (Exception e) {
             throw new IllegalArgumentException("Upload failed: " + e.getMessage());
