@@ -336,23 +336,14 @@ function NearbyDoctors() {
         </div>
       )}
 
-      {/* Search & Filter */}
+      {/* Filter Bar */}
       {doctors.length > 0 && (
         <div className="frost-card rounded-xl p-4 mb-6 fade-up stagger-2">
           <div className="flex flex-wrap items-center gap-3">
-            <div className="flex-1 min-w-[200px]">
-              <input
-                type="text"
-                placeholder="Search by doctor name, clinic, or specialization..."
-                value={searchQuery}
-                onChange={(e) => setSearchQuery(e.target.value)}
-                className="field text-sm py-2"
-              />
-            </div>
             <select
               value={filterSpec}
               onChange={(e) => setFilterSpec(e.target.value)}
-              className="field max-w-[180px] text-sm py-2"
+              className="field max-w-[200px] text-sm py-2"
             >
               <option value="">All Specializations</option>
               {allSpecializations.map((spec) => (
@@ -426,7 +417,8 @@ function NearbyDoctors() {
                           <span className="font-semibold text-slate-700 dark:text-slate-300">{clinic.clinicRating}</span>
                         </div>
                       )}
-                      {/* Like button */}
+                      {/* Like button — only for logged-in patients */}
+                      {session && session.role === "PATIENT" && (
                       <button
                         onClick={(e) => toggleLikeClinic(clinic.clinicId, e)}
                         className="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 transition"
@@ -434,6 +426,7 @@ function NearbyDoctors() {
                       >
                         <svg className={`h-5 w-5 ${isLiked ? "text-red-500 fill-red-500" : "text-slate-300 hover:text-slate-400"}`} fill={isLiked ? "currentColor" : "none"} viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}><path strokeLinecap="round" strokeLinejoin="round" d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
                       </button>
+                      )}
                       {/* Distance */}
                       <div className="text-right">
                         <p className="text-lg font-bold text-teal-600 dark:text-teal-400">{clinic.distanceKm != null ? clinic.distanceKm.toFixed(1) : "—"}</p>
