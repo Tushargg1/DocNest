@@ -260,31 +260,29 @@ function NearbyDoctors() {
       {error && <div className="alert-error mb-4"><p className="text-sm">{error}</p></div>}
 
       {/* Doctor Name Search */}
-      <div className="frost-card rounded-xl p-4 mb-6 fade-up stagger-1">
-        <div className="relative">
-          <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
-            <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-              <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-            </svg>
-          </div>
-          <input
-            type="text"
-            placeholder="Search doctors by name or specialization across all clinics..."
-            value={doctorSearchQuery}
-            onChange={(e) => handleDoctorSearch(e.target.value)}
-            className="field text-sm py-2.5 pl-9 pr-9"
-          />
-          {doctorSearchQuery && (
-            <button
-              onClick={clearDoctorSearch}
-              className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
+      <div className="relative mb-6 fade-up stagger-1">
+        <div className="absolute inset-y-0 left-3 flex items-center pointer-events-none">
+          <svg className="h-4 w-4 text-slate-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+            <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+          </svg>
+        </div>
+        <input
+          type="text"
+          placeholder="Search doctors by name or specialization..."
+          value={doctorSearchQuery}
+          onChange={(e) => handleDoctorSearch(e.target.value)}
+          className="field text-sm py-3 pl-10 pr-10"
+        />
+        {doctorSearchQuery && (
+          <button
+            onClick={clearDoctorSearch}
+            className="absolute inset-y-0 right-3 flex items-center text-slate-400 hover:text-slate-600"
             >
               <svg className="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
                 <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
               </svg>
             </button>
           )}
-        </div>
         {isSearchingDoctors && (
           <p className="text-xs text-slate-400 mt-2">Searching...</p>
         )}
