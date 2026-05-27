@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import api from "../services/api";
 import { useAuth } from "../context/AuthContext";
-import DoctorWeekCalendar from "../components/DoctorWeekCalendar";
 
 function DoctorDetails() {
   const { doctorUserId } = useParams();
@@ -167,7 +166,9 @@ function DoctorDetails() {
           {/* Name & Actions */}
           <div className="pt-18 mt-16 flex flex-wrap items-start justify-between gap-4">
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Dr. {doctor.doctorName}</h1>
+              <h1 className="text-2xl sm:text-3xl font-black text-slate-900 tracking-tight">
+                {doctor.doctorName.startsWith("Dr.") ? doctor.doctorName : "Dr. " + doctor.doctorName}
+              </h1>
               <div className="flex items-center gap-3 mt-2 flex-wrap">
                 <span className="spec-tag-light text-sm px-3 py-1">{doctor.specialization}</span>
                 {doctor.occupation && doctor.occupation !== doctor.specialization && (
@@ -203,150 +204,54 @@ function DoctorDetails() {
       </div>
 
       {/* Main Content Grid */}
-      <div className="grid gap-8 lg:grid-cols-3">
+      <div className="grid gap-6 lg:grid-cols-3">
         {/* Left: Details */}
         <div className="lg:col-span-2 space-y-6">
           {/* About / Bio */}
-          <div className="frost-card rounded-2xl p-7">
+          <div className="frost-card rounded-2xl p-6">
             <h3 className="text-xs font-black uppercase tracking-widest text-teal-600 mb-3">About</h3>
-            <p className="text-slate-600 leading-relaxed">
-              {doctor.bio || "Dr. " + doctor.doctorName + " is a qualified " + doctor.specialization + " specialist available for consultations."}
+            <p className="text-slate-600 leading-relaxed text-sm">
+              {doctor.bio || doctor.doctorName + " is a qualified " + doctor.specialization + " specialist available for consultations."}
             </p>
-          </div>
-
-          {/* Weekly Availability Overview */}
-          <div className="frost-card rounded-2xl p-7">
-            <h3 className="text-xs font-black uppercase tracking-widest text-teal-600 mb-4">Availability This Week</h3>
-            <DoctorWeekCalendar doctorUserId={Number(doctorUserId)} compact />
           </div>
 
           {/* Qualifications */}
           {doctor.degrees && doctor.degrees.length > 0 && (
-            <div className="frost-card rounded-2xl p-7">
-              <h3 className="text-xs font-black uppercase tracking-widest text-teal-600 mb-4">Qualifications & Degrees</h3>
-              <div className="grid gap-3 sm:grid-cols-2">
+            <div className="frost-card rounded-2xl p-6">
+              <h3 className="text-xs font-black uppercase tracking-widest text-teal-600 mb-4">Qualifications</h3>
+              <div className="grid gap-2 sm:grid-cols-2">
                 {doctor.degrees.map((deg, i) => (
-                  <div key={i} className="flex items-start gap-3 p-3 rounded-xl bg-slate-50 border border-slate-100">
-                    <span className="text-lg">🎓</span>
-                    <p className="text-sm font-semibold text-slate-700">{deg}</p>
+                  <div key={i} className="flex items-center gap-2 p-3 rounded-xl bg-slate-50 border border-slate-100">
+                    <span className="text-sm">🎓</span>
+                    <p className="text-sm font-medium text-slate-700">{deg}</p>
                   </div>
                 ))}
               </div>
             </div>
           )}
 
-          {/* Clinic Info Card */}
-          <div className="frost-card rounded-2xl p-7">
-            <h3 className="text-xs font-black uppercase tracking-widest text-teal-600 mb-4">Clinic Information</h3>
-            
-            {/* Clinic Photos */}
-            {(() => {
-              let photos = [];
-              try { photos = JSON.parse(doctor.clinicPhotos || "[]"); } catch { photos = []; }
-              if (photos.length === 0) return null;
-              return (
-                <div className="flex gap-2 overflow-x-auto pb-3 mb-4">
-                  {photos.map((url, idx) => (
-                    <img key={idx} src={url} alt={`Clinic ${idx + 1}`} className="h-28 w-44 rounded-xl object-cover shrink-0 border border-slate-200" />
-                  ))}
-                </div>
-              );
-            })()}
-
-            <div className="flex items-start gap-5">
-              <div className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl bg-teal-50 text-teal-700 font-bold text-lg">
+          {/* Clinic Info */}
+          <div className="frost-card rounded-2xl p-6">
+            <h3 className="text-xs font-black uppercase tracking-widest text-teal-600 mb-4">Clinic</h3>
+            <div className="flex items-start gap-4">
+              <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-teal-50 text-teal-700 font-bold text-lg">
                 {(doctor.clinicName || "C").charAt(0)}
               </div>
-              <div className="flex-1">
-                <p className="text-lg font-black text-slate-900">{doctor.clinicName}</p>
+              <div>
+                <p className="font-bold text-slate-900">{doctor.clinicName}</p>
                 <p className="text-sm text-slate-500 mt-0.5">{doctor.clinicAddress}</p>
                 {doctor.distanceKm != null && (
-                  <p className="text-sm font-bold text-teal-600 mt-1">{doctor.distanceKm} km from your location</p>
-                )}
-                {doctor.clinicAbout && (
-                  <p className="text-sm text-slate-600 mt-3 leading-relaxed">{doctor.clinicAbout}</p>
+                  <p className="text-sm font-semibold text-teal-600 mt-1">{doctor.distanceKm} km away</p>
                 )}
               </div>
-            </div>
-
-            {/* Clinic Details Grid */}
-            <div className="mt-5 space-y-3">
-              {doctor.clinicOpeningHours && (
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <svg className="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
-                  <span>{doctor.clinicOpeningHours}</span>
-                </div>
-              )}
-              {doctor.clinicPhone && (
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <svg className="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                  <span>{doctor.clinicPhone}</span>
-                </div>
-              )}
-              {doctor.clinicEmail && (
-                <div className="flex items-center gap-2 text-sm text-slate-600">
-                  <svg className="h-4 w-4 text-teal-500 shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 8l7.89 5.26a2 2 0 002.22 0L21 8M5 19h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v10a2 2 0 002 2z" /></svg>
-                  <span>{doctor.clinicEmail}</span>
-                </div>
-              )}
-            </div>
-
-            {/* Clinic Services */}
-            {doctor.clinicServices && (
-              <div className="mt-4">
-                <p className="text-xs font-bold uppercase tracking-widest text-slate-400 mb-2">Services</p>
-                <div className="flex flex-wrap gap-1.5">
-                  {doctor.clinicServices.split(",").filter(s => s.trim()).map((svc, i) => (
-                    <span key={i} className="text-xs bg-teal-50 text-teal-700 border border-teal-200 px-2.5 py-1 rounded-lg font-medium">
-                      {svc.trim()}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* Clinic Action Buttons */}
-            <div className="flex flex-wrap gap-2 mt-5 pt-4 border-t border-slate-100">
-              {doctor.clinicGoogleMapsUrl && (
-                <a
-                  href={doctor.clinicGoogleMapsUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost px-4 py-2 text-xs flex items-center gap-1.5"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
-                  Get Directions
-                </a>
-              )}
-              {doctor.clinicHelpline && (
-                <a
-                  href={`tel:${doctor.clinicHelpline}`}
-                  className="btn-ghost px-4 py-2 text-xs flex items-center gap-1.5 border-teal-200 text-teal-700"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M3 5a2 2 0 012-2h3.28a1 1 0 01.948.684l1.498 4.493a1 1 0 01-.502 1.21l-2.257 1.13a11.042 11.042 0 005.516 5.516l1.13-2.257a1 1 0 011.21-.502l4.493 1.498a1 1 0 01.684.949V19a2 2 0 01-2 2h-1C9.716 21 3 14.284 3 6V5z" /></svg>
-                  Call Helpline
-                </a>
-              )}
-              {doctor.clinicWebsite && (
-                <a
-                  href={doctor.clinicWebsite}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="btn-ghost px-4 py-2 text-xs flex items-center gap-1.5"
-                >
-                  <svg className="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 12a9 9 0 01-9 9m9-9a9 9 0 00-9-9m9 9H3m9 9a9 9 0 01-9-9m9 9c1.657 0 3-4.03 3-9s-1.343-9-3-9m0 18c-1.657 0-3-4.03-3-9s1.343-9 3-9m-9 9a9 9 0 019-9" /></svg>
-                  Website
-                </a>
-              )}
             </div>
           </div>
         </div>
 
         {/* Right: Booking Sidebar */}
         <aside className="space-y-6">
-          {/* Date Selection */}
-          <div className="frost-card rounded-2xl p-6 shadow-xl ring-1 ring-slate-200/50">
-            <h2 className="text-lg font-black text-slate-900 mb-4">📅 Book Appointment</h2>
+          <div className="frost-card rounded-2xl p-5 ring-1 ring-slate-200/50">
+            <h2 className="text-base font-black text-slate-900 mb-4">Book Appointment</h2>
 
             {/* Quick Date Pills */}
             <div className="flex gap-1.5 overflow-x-auto pb-2 mb-4">
