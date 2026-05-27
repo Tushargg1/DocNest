@@ -210,6 +210,7 @@ public class DoctorController {
                 null,
                 null,
                 DoctorApprovalStatus.PENDING_REVIEW.name(),
+                null,
                 List.of(),
                 List.of()
             );
@@ -277,6 +278,7 @@ public class DoctorController {
             clinic != null ? clinic.getId() : null,
             clinic != null ? clinic.getName() : null,
             profile.getApprovalStatus() != null ? profile.getApprovalStatus().name() : DoctorApprovalStatus.ACTIVE.name(),
+            profile.getPhotoUrl(),
             patients,
             upcomingAppointments
         );

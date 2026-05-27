@@ -54,4 +54,6 @@ public class DoctorProfile {
     private String occupation;
 
     private Double consultationFee = 500.0;
+
+    private String photoUrl;
 }

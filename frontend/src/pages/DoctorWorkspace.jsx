@@ -446,6 +446,51 @@ function DoctorWorkspace() {
 
       {status && <div className="alert-error mb-6"><p className="font-semibold">{status}</p></div>}
 
+      {/* Doctor Photo Upload */}
+      {dashboard && (
+        <div className="frost-card rounded-2xl p-5 mb-6 flex items-center gap-4 fade-up">
+          <div className="relative">
+            {dashboard.photoUrl ? (
+              <img src={dashboard.photoUrl} alt="Profile" className="h-16 w-16 rounded-2xl object-cover border-2 border-teal-200" />
+            ) : (
+              <div className="h-16 w-16 rounded-2xl bg-teal-100 flex items-center justify-center text-teal-700 font-bold text-xl">
+                {session?.fullName?.charAt(0) || "D"}
+              </div>
+            )}
+          </div>
+          <div className="flex-1">
+            <p className="font-bold text-slate-900">{session?.fullName}</p>
+            <p className="text-xs text-slate-500">{dashboard.approvalStatus === "ACTIVE" ? "Profile Live" : "Pending Approval"}</p>
+          </div>
+          <label className="btn-ghost px-3 py-2 text-xs cursor-pointer">
+            {dashboard.photoUrl ? "Change Photo" : "Add Photo"}
+            <input
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={async (e) => {
+                const file = e.target.files[0];
+                if (!file) return;
+                const formData = new FormData();
+                formData.append("file", file);
+                formData.append("clinicName", dashboard.clinicName || "clinic");
+                formData.append("doctorName", session?.fullName || "doctor");
+                try {
+                  const { data } = await api.post("/upload/doctor-photo", formData, {
+                    headers: { "Content-Type": "multipart/form-data" }
+                  });
+                  // Refresh dashboard to show new photo
+                  const { data: d } = await api.get(`/doctors/${session.userId}/dashboard`);
+                  setDashboard(d);
+                } catch (err) {
+                  setStatus("Photo upload failed. Try again.");
+                }
+              }}
+            />
+          </label>
+        </div>
+      )}
+
       {/* Stat Cards */}
       {dashboard && (
         <div className="grid gap-4 sm:grid-cols-3 mb-8 fade-up stagger-1">

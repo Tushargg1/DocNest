@@ -23,6 +23,7 @@ public class WorkspaceDtos {
         Long clinicId,
         String clinicName,
         String approvalStatus,
+        String photoUrl,
         List<DoctorPatientSummaryResponse> patients,
         List<AppointmentDtos.AppointmentResponse> upcomingAppointments
     ) {}

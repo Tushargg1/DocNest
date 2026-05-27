@@ -1,6 +1,8 @@
 package com.doctpjt.clinicapp.controller;
 
+import com.doctpjt.clinicapp.entity.DoctorProfile;
 import com.doctpjt.clinicapp.entity.User;
+import com.doctpjt.clinicapp.repository.DoctorProfileRepository;
 import com.doctpjt.clinicapp.repository.UserRepository;
 import com.doctpjt.clinicapp.service.CloudinaryService;
 import com.doctpjt.clinicapp.service.PrescriptionOCRService;
@@ -24,11 +26,13 @@ public class UploadController {
     private final CloudinaryService cloudinaryService;
     private final PrescriptionOCRService prescriptionOCRService;
     private final UserRepository userRepository;
+    private final DoctorProfileRepository doctorProfileRepository;
 
-    public UploadController(CloudinaryService cloudinaryService, PrescriptionOCRService prescriptionOCRService, UserRepository userRepository) {
+    public UploadController(CloudinaryService cloudinaryService, PrescriptionOCRService prescriptionOCRService, UserRepository userRepository, DoctorProfileRepository doctorProfileRepository) {
         this.cloudinaryService = cloudinaryService;
         this.prescriptionOCRService = prescriptionOCRService;
         this.userRepository = userRepository;
+        this.doctorProfileRepository = doctorProfileRepository;
     }
 
     /**
@@ -107,22 +111,30 @@ public class UploadController {
     }
 
     /**
-     * Upload doctor profile photo.
+     * Upload doctor profile photo and save URL to profile.
      */
     @PostMapping("/doctor-photo")
     @PreAuthorize("hasAnyRole('DOCTOR', 'CLINIC', 'ADMIN')")
     public Map<String, Object> uploadDoctorPhoto(
         @RequestParam("file") MultipartFile file,
-        @RequestParam String clinicName,
-        @RequestParam String doctorName,
+        @RequestParam(defaultValue = "clinic") String clinicName,
+        @RequestParam(defaultValue = "doctor") String doctorName,
         Authentication authentication
     ) {
         if (!cloudinaryService.isConfigured()) {
-            throw new IllegalStateException("Image upload service is not configured. Please contact support.");
+            throw new IllegalStateException("Image upload service is not configured.");
         }
 
         try {
+            Long userId = (Long) authentication.getPrincipal();
             String url = cloudinaryService.uploadDoctorPhoto(file, clinicName, doctorName);
+
+            // Save photo URL to doctor profile
+            doctorProfileRepository.findByUserId(userId).ifPresent(profile -> {
+                profile.setPhotoUrl(url);
+                doctorProfileRepository.save(profile);
+            });
+
             return Map.of("url", url, "status", "success");
         } catch (Exception e) {
             throw new IllegalArgumentException("Upload failed: " + e.getMessage());
